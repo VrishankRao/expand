@@ -1,0 +1,30 @@
+<div class="text-center py-8 space-y-5 animate-slide-up">
+
+    <!-- Success icon -->
+    <div class="relative inline-block">
+        <div class="w-16 h-16 rounded-2xl bg-brand-500/15 border border-brand-500/30 flex items-center justify-center mx-auto shadow-lg shadow-brand-500/10">
+            <svg class="w-8 h-8 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+        </div>
+        <!-- Pulse ring -->
+        <div class="absolute inset-0 rounded-2xl border-2 border-brand-500/20 animate-ping"></div>
+    </div>
+
+    <div>
+        <h3 class="text-base font-bold text-theme-text">You're all set!</h3>
+        <p class="text-xs text-theme-muted mt-1.5">Opening WhatsApp now…</p>
+    </div>
+
+    <div class="flex items-center justify-center gap-2 text-[11px] text-theme-muted">
+        <div class="w-4 h-4 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin"></div>
+        Redirecting
+    </div>
+
+    <script>
+        window.open("{{ target_url|escapejs }}", "_blank");
+        setTimeout(() => {
+            window.dispatchEvent(new CustomEvent("close-modal"));
+        }, 1800);
+    </script>
+</div>

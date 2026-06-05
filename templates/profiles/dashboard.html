@@ -1,0 +1,431 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — XPAND{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<style id="dashboard-theme-styles">
+    :root {
+        {% if profile.theme == 'light' %}
+        --bg: #f4f6f9; --surface: #eef0f4; --card: #ffffff; --border: #e2e5ea; --border-subtle: #edf0f3;
+        --text: #0f1117; --muted: #6b7280; --placeholder: rgba(107,114,128,0.55); --label: #4b5563;
+        --input: #f9fafb; --input-border: #d1d5db; --input-text: #0f1117;
+        --hover: #f1f3f6; --btn-bg: #f3f4f6; --btn-border: #d1d5db;
+        --btn-active: #0f1117; --btn-active-text: #ffffff;
+        {% elif profile.theme == 'whatsapp-green' %}
+        --bg: #071a12; --surface: #0a2119; --card: #0d2b20; --border: #134d35; --border-subtle: #0f3d28;
+        --text: #ecfdf5; --muted: #6ee7b7; --placeholder: rgba(110,231,183,0.45); --label: #a7f3d0;
+        --input: #071a12; --input-border: #15573b; --input-text: #ecfdf5;
+        --hover: #0a2a1e; --btn-bg: #0a2119; --btn-border: #15573b;
+        --btn-active: #16a34a; --btn-active-text: #ffffff;
+        {% else %}
+        --bg: #070d19; --surface: #0c1525; --card: #0f1c30; --border: #1e2d42; --border-subtle: #162030;
+        --text: #f1f5f9; --muted: #64748b; --placeholder: rgba(100,116,139,0.5); --label: #94a3b8;
+        --input: #070d19; --input-border: #1e2d42; --input-text: #f1f5f9;
+        --hover: #132032; --btn-bg: #0c1525; --btn-border: #1e2d42;
+        --btn-active: #1e2d42; --btn-active-text: #f1f5f9;
+        {% endif %}
+    }
+    body { background-color: var(--bg) !important; color: var(--text) !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex flex-col bg-theme-bg text-theme-text font-sans"
+     x-data="{ openAnalytics: false, openEdit: false, mobileNav: false }"
+     @close-analytics.window="openAnalytics = false"
+     @close-edit-modal.window="openEdit = false">
+
+    <!-- ═══ TOP NAV ═══ -->
+    <header class="sticky top-0 z-40 border-b border-theme-border bg-theme-card/90 glass">
+        <div class="max-w-[1480px] mx-auto px-5 py-3 flex items-center justify-between gap-4">
+
+            <!-- Left: brand + handle -->
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-7 h-7 rounded-lg bg-brand-500 flex items-center justify-center shadow shadow-brand-500/30 flex-shrink-0">
+                    <svg class="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                        <path d="M12 0C5.373 0 0 5.373 0 12c0 2.136.558 4.136 1.535 5.875L0 24l6.296-1.507A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.048-1.395l-.362-.215-3.739.895.928-3.638-.236-.374A9.818 9.818 0 1112 21.818z"/>
+                    </svg>
+                </div>
+                <div class="min-w-0">
+                    <span class="font-bold text-sm tracking-tight">XPAND</span>
+                    <span class="hidden sm:inline ml-2 text-xs text-theme-muted font-medium">/ Dashboard</span>
+                </div>
+                <a href="/{{ profile.handle }}/" target="_blank"
+                   class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-500/10 border border-brand-500/20 text-brand-400 text-[11px] font-semibold hover:bg-brand-500/15 transition-colors">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                    </svg>
+                    xpand.so/{{ profile.handle }}
+                </a>
+            </div>
+
+            <!-- Right: user info + logout -->
+            <div class="flex items-center gap-3">
+                <div class="hidden md:block text-right">
+                    <p class="text-[10px] text-theme-muted uppercase tracking-widest font-semibold">Logged in as</p>
+                    <p class="text-xs font-bold text-theme-text">{{ request.user.phone_number }}</p>
+                </div>
+                <form action="{% url 'authentication:logout' %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-theme-border rounded-lg text-xs font-semibold bg-theme-btn-bg text-theme-text hover:bg-theme-hover">
+                        <svg class="w-3.5 h-3.5 text-theme-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                        </svg>
+                        <span class="hidden sm:inline">Log out</span>
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- ═══ MAIN CONTENT ═══ -->
+    <main class="flex-grow max-w-[1480px] w-full mx-auto p-5 space-y-5">
+
+        <!-- ── ROW 1: Profile Settings + CTAs ── -->
+        <div class="grid grid-cols-1 xl:grid-cols-[380px_1fr] gap-5">
+
+            <!-- ╔══ Profile Settings Card ══╗ -->
+            <div class="border border-theme-border rounded-2xl bg-theme-card shadow-sm overflow-hidden">
+                <!-- Card header -->
+                <div class="px-5 pt-5 pb-4 border-b border-theme-border">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-sm font-bold text-theme-text">Profile Settings</h2>
+                            <p class="text-[11px] text-theme-muted mt-0.5">How you appear on your public page</p>
+                        </div>
+                        <!-- Visibility pill -->
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border
+                            {% if profile.is_visible %}bg-brand-500/10 border-brand-500/25 text-brand-400{% else %}bg-theme-surface border-theme-border text-theme-muted{% endif %}">
+                            <span class="w-1.5 h-1.5 rounded-full {% if profile.is_visible %}bg-brand-400 animate-pulse-slow{% else %}bg-theme-muted{% endif %}"></span>
+                            {% if profile.is_visible %}Public{% else %}Private{% endif %}
+                        </span>
+                    </div>
+                </div>
+
+                <form hx-post="{% url 'profiles:update_profile' %}" hx-target="#profile-msg" class="p-5 space-y-4"
+                      enctype="multipart/form-data" hx-encoding="multipart/form-data">
+                    {% csrf_token %}
+
+                    <!-- Avatar row -->
+                    <div class="flex items-center gap-4"
+                         x-data="{ imgPreview: '{% if profile.avatar %}{{ profile.avatar.url }}{% endif %}' }">
+                        <div class="relative flex-shrink-0">
+                            <div class="w-16 h-16 rounded-2xl bg-theme-surface border border-theme-border flex items-center justify-center overflow-hidden">
+                                <template x-if="imgPreview">
+                                    <img :src="imgPreview" alt="Avatar" class="w-full h-full object-cover">
+                                </template>
+                                <template x-if="!imgPreview">
+                                    <span class="text-2xl font-extrabold text-theme-muted">{{ profile.display_name|slice:":1"|upper }}</span>
+                                </template>
+                            </div>
+                            <!-- Camera overlay -->
+                            <button type="button" onclick="document.getElementById('avatar-input').click()"
+                                class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-brand-500 border-2 border-theme-card flex items-center justify-center hover:bg-brand-600 transition-colors">
+                                <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="min-w-0">
+                            <input type="file" name="avatar" id="avatar-input" accept="image/png,image/jpeg,image/gif" class="hidden"
+                                @change="const f=$event.target.files[0];if(f){const r=new FileReader();r.onload=e=>{imgPreview=e.target.result};r.readAsDataURL(f)}">
+                            <p class="text-sm font-semibold text-theme-text truncate">{{ profile.display_name }}</p>
+                            <p class="text-[11px] text-brand-400 font-medium">@{{ profile.handle }}</p>
+                            <p class="text-[10px] text-theme-muted mt-0.5">JPG, PNG or GIF · max 2MB</p>
+                        </div>
+                    </div>
+
+                    <!-- Display name -->
+                    <div>
+                        <label for="display_name" class="block text-[10px] font-bold uppercase tracking-widest text-theme-label mb-1.5">Display Name</label>
+                        <input type="text" name="display_name" id="display_name" value="{{ profile.display_name }}" required placeholder="Your Name"
+                            class="w-full bg-theme-input border border-theme-input-border rounded-xl px-3.5 py-2.5 text-sm text-theme-input-text placeholder-theme-placeholder">
+                    </div>
+
+                    <!-- Bio -->
+                    <div>
+                        <label for="bio" class="block text-[10px] font-bold uppercase tracking-widest text-theme-label mb-1.5">Bio</label>
+                        <textarea name="bio" id="bio" rows="2" maxlength="200" placeholder="Write something about yourself..."
+                            class="w-full bg-theme-input border border-theme-input-border rounded-xl px-3.5 py-2.5 text-sm text-theme-input-text placeholder-theme-placeholder resize-none">{{ profile.bio }}</textarea>
+                    </div>
+
+                    <!-- Theme picker -->
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase tracking-widest text-theme-label mb-2">Theme</label>
+                        <div class="flex gap-2">
+                            {% for t_val, t_label in profile.THEME_CHOICES %}
+                            <label class="flex-1 cursor-pointer">
+                                <input type="radio" name="theme" value="{{ t_val }}" class="peer sr-only"
+                                    {% if current_theme == t_val %}checked{% endif %}
+                                    hx-post="{% url 'profiles:update_theme' %}" hx-vals='{"theme": "{{ t_val }}"}'
+                                    hx-target="body" hx-swap="none">
+                                <div class="py-2 text-center text-xs rounded-lg border cursor-pointer
+                                    bg-theme-btn-bg border-theme-btn-border text-theme-text
+                                    peer-checked:bg-theme-btn-active peer-checked:text-theme-btn-active-text peer-checked:border-theme-btn-active
+                                    hover:bg-theme-hover font-semibold">
+                                    {{ t_label }}
+                                </div>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Visibility toggle -->
+                    <div class="flex items-center justify-between p-3.5 rounded-xl bg-theme-surface border border-theme-border">
+                        <div>
+                            <span class="text-xs font-semibold text-theme-text">Public Visibility</span>
+                            <p class="text-[11px] text-theme-muted">Show profile to everyone</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="is_visible" value="true" class="sr-only peer"
+                                {% if profile.is_visible %}checked{% endif %}>
+                            <div class="w-11 h-6 bg-theme-btn-bg border border-theme-btn-border rounded-full
+                                peer-checked:bg-brand-500
+                                after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all
+                                peer-checked:after:translate-x-5"></div>
+                        </label>
+                    </div>
+
+                    <div id="profile-msg" class="min-h-0"></div>
+
+                    <button type="submit"
+                        class="w-full flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-600 text-white py-2.5 text-sm font-bold rounded-xl hover:-translate-y-0.5 shadow-lg shadow-brand-500/15 active:translate-y-0">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Save Changes
+                    </button>
+                </form>
+            </div>
+
+            <!-- ╔══ WhatsApp CTAs Card ══╗ -->
+            <div class="border border-theme-border rounded-2xl bg-theme-card shadow-sm overflow-hidden flex flex-col">
+                <!-- Card header -->
+                <div class="px-5 pt-5 pb-4 border-b border-theme-border flex items-center justify-between">
+                    <div>
+                        <h2 class="text-sm font-bold text-theme-text">WhatsApp CTAs</h2>
+                        <p class="text-[11px] text-theme-muted mt-0.5">Add up to 5 active links · URLs auto-classify</p>
+                    </div>
+                    <!-- Link count badge -->
+                    <div class="flex items-center gap-1 text-[11px] font-bold text-theme-muted">
+                        <span class="text-brand-400">{{ links|length }}</span>
+                        <span>/ 5</span>
+                    </div>
+                </div>
+
+                <div class="p-5 space-y-5 flex-grow flex flex-col">
+
+                    <!-- Add link form -->
+                    <form id="add-link-form" hx-post="{% url 'profiles:add_link' %}" hx-target="#links-list-container" hx-swap="innerHTML"
+                          class="flex flex-col sm:flex-row gap-2.5">
+                        {% csrf_token %}
+
+                        <input type="text" name="label" required placeholder="Button label (e.g. Chat with us)"
+                            class="flex-1 bg-theme-input border border-theme-input-border rounded-xl px-3.5 py-2.5 text-sm text-theme-input-text placeholder-theme-placeholder min-w-0">
+
+                        <input type="url" name="url" required placeholder="wa.me/... or whatsapp.com/..."
+                            class="flex-1 bg-theme-input border border-theme-input-border rounded-xl px-3.5 py-2.5 text-sm text-theme-input-text placeholder-theme-placeholder min-w-0">
+
+                        <select name="surface_type" required
+                            class="bg-theme-input border border-theme-input-border rounded-xl px-3.5 py-2.5 text-sm text-theme-input-text w-full sm:w-auto">
+                            <option value="" disabled selected>Type…</option>
+                            <option value="group">Group</option>
+                            <option value="community">Community</option>
+                            <option value="channel">Channel</option>
+                        </select>
+
+                        <button type="submit"
+                            class="inline-flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-600 text-white px-5 py-2.5 text-sm font-bold rounded-xl whitespace-nowrap shadow shadow-brand-500/20 hover:-translate-y-0.5 active:translate-y-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            Add
+                        </button>
+                    </form>
+                    <div id="link-add-msg" class="min-h-0 -mt-2"></div>
+
+                    <!-- Hidden sort form -->
+                    <form id="sort-form" hx-post="{% url 'profiles:sort_links' %}" hx-target="#links-list-container" hx-swap="innerHTML" class="hidden">
+                        {% csrf_token %}
+                    </form>
+
+                    <!-- Links list -->
+                    <div id="links-list-container" class="flex-grow"
+                         hx-get="{% url 'profiles:links_list' %}"
+                         hx-trigger="linkListChanged from:body"
+                         hx-swap="innerHTML">
+                        {% include "profiles/partials/links_list.html" %}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ── ROW 2: Lead Notifications ── -->
+        <div class="border border-theme-border rounded-2xl bg-theme-card shadow-sm overflow-hidden">
+            <div class="px-5 pt-5 pb-4 border-b border-theme-border">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center">
+                        <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold text-theme-text">Lead Notifications</h2>
+                        <p class="text-[11px] text-theme-muted">Get emailed instantly when leads are captured</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-5">
+                <div id="email-verification-section">
+                    {% if profile.email_verified %}
+                        {% include "profiles/partials/email_verified_section.html" %}
+                    {% else %}
+                        <form hx-post="{% url 'profiles:send_email_otp' %}" hx-target="#email-verification-section" class="flex max-w-md gap-2.5">
+                            {% csrf_token %}
+                            <input type="email" name="email" required placeholder="you@email.com" value="{{ profile.verified_email|default:'' }}"
+                                class="flex-grow bg-theme-input border border-theme-input-border rounded-xl px-3.5 py-2.5 text-sm text-theme-input-text placeholder-theme-placeholder">
+                            <button type="submit"
+                                class="inline-flex items-center gap-1.5 px-4 py-2.5 border border-theme-border rounded-xl bg-theme-btn-bg text-theme-text hover:bg-theme-hover text-xs font-semibold whitespace-nowrap">
+                                <svg class="w-3.5 h-3.5 text-theme-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Verify Email
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ── ROW 3: Leads Inbox ── -->
+        <div class="border border-theme-border rounded-2xl bg-theme-card shadow-sm overflow-hidden">
+            <!-- Header -->
+            <div class="px-5 pt-5 pb-4 border-b border-theme-border flex items-center justify-between gap-4">
+                <div class="flex items-center gap-2">
+                    <div class="w-7 h-7 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center">
+                        <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold text-theme-text">Leads Inbox</h2>
+                        <p class="text-[11px] text-theme-muted">
+                            <span class="text-brand-400 font-bold">{{ leads|length }}</span> lead{{ leads|length|pluralize }} captured
+                        </p>
+                    </div>
+                </div>
+                <a href="{% url 'leads:export_leads' %}"
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2 border border-theme-border rounded-xl text-xs font-semibold bg-theme-btn-bg text-theme-text hover:bg-theme-hover">
+                    <svg class="w-3.5 h-3.5 text-theme-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Export CSV
+                </a>
+            </div>
+
+            <!-- Search & filter -->
+            <div class="px-5 py-3.5 border-b border-theme-border bg-theme-surface flex flex-col sm:flex-row gap-2.5">
+                <div class="relative flex-grow">
+                    <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
+                    </svg>
+                    <input type="text" name="search" placeholder="Search by name, email, phone…"
+                        hx-get="{% url 'leads:search_leads' %}" hx-trigger="keyup changed delay:300ms" hx-target="#leads-table"
+                        class="w-full pl-10 pr-4 py-2.5 bg-theme-input border border-theme-input-border rounded-xl text-sm text-theme-input-text placeholder-theme-placeholder">
+                </div>
+                <select name="link_filter" hx-get="{% url 'leads:search_leads' %}" hx-trigger="change" hx-target="#leads-table"
+                    class="bg-theme-input border border-theme-input-border rounded-xl px-3.5 py-2.5 text-sm text-theme-input-text w-full sm:w-48">
+                    <option value="">All CTA Buttons</option>
+                    {% for l in links %}
+                    <option value="{{ l.id }}">{{ l.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Table -->
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-xs">
+                    <thead>
+                        <tr class="border-b border-theme-border bg-theme-surface">
+                            <th class="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-theme-muted">Lead</th>
+                            <th class="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-theme-muted">Source CTA</th>
+                            <th class="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-theme-muted">Message</th>
+                            <th class="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-theme-muted">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-theme-border" id="leads-table">
+                        {% include "leads/partials/leads_table_rows.html" %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ═══ ANALYTICS MODAL ═══ -->
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 glass"
+         x-show="openAnalytics" x-cloak x-transition.opacity>
+
+        <div class="max-w-lg w-full max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl border bg-theme-card border-theme-border relative"
+             @click.away="openAnalytics = false"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 translate-y-2"
+             x-transition:enter-end="opacity-100 translate-y-0">
+
+            <button @click="openAnalytics = false"
+                class="absolute top-4 right-4 w-8 h-8 rounded-xl bg-theme-surface border border-theme-border flex items-center justify-center hover:bg-theme-hover text-theme-muted z-10">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+
+            <div id="analytics-modal-container" class="p-6 text-theme-text">
+                <div class="flex items-center justify-center py-12">
+                    <div class="w-5 h-5 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ EDIT MODAL ═══ -->
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 glass"
+         x-show="openEdit" x-cloak x-transition.opacity>
+
+        <div class="max-w-lg w-full max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl border bg-theme-card border-theme-border relative"
+             @click.away="openEdit = false"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 translate-y-2"
+             x-transition:enter-end="opacity-100 translate-y-0">
+
+            <button @click="openEdit = false"
+                class="absolute top-4 right-4 w-8 h-8 rounded-xl bg-theme-surface border border-theme-border flex items-center justify-center hover:bg-theme-hover text-theme-muted z-10">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+
+            <div id="edit-modal-container" class="p-6 text-theme-text">
+                <div class="flex items-center justify-center py-12">
+                    <div class="w-5 h-5 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('htmx:afterRequest', function(e) {
+        if (e.detail.successful && e.detail.elt.id === 'add-link-form') {
+            e.detail.elt.reset();
+        }
+    });
+</script>
+{% endblock %}

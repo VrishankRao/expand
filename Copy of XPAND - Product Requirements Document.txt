@@ -1,0 +1,434 @@
+XPAND — Product Requirements Document
+Version: v2.0 (supersedes v1.0) Status: Approved for build Build window: 8 weeks · 4 sprints · 3 interns Audience: Engineering team, stakeholders
+
+One-line pitch: XPAND is the front door for the WhatsApp-first economy — your WhatsApp Profile in one link, with a built-in lead inbox that turns visitor intent into real conversations.
+
+1. Why this exists
+WhatsApp has stopped being a messaging app. In India and similar markets, it is the primary business interface — the place where coaches teach, communities gather, creators sell, and operators run their day-to-day.
+The tooling around it has not caught up. A coach running a free community, a paid mastermind, a broadcast channel, and a support chat has no clean way to present them as a unified presence. Worse: even when they share a wa.me link, they get clicks without context. They don't know who clicked, what they wanted, or whether the visitor ever joined.
+XPAND solves both problems:
+The presence problem — one link at xpand.so/<handle> that unifies every WhatsApp surface the user runs.
+The intent problem — every visitor who wants to engage fills a lead form first. The user gets a name, an email, a WhatsApp number, and a message — not a click count.
+We are not building a link page. We are building a category: the WhatsApp Profile.
+
+2. The product noun
+The page a user creates on XPAND is called their WhatsApp Profile.
+Not "hub." Not "link page." Not "bio link."
+It is their public WhatsApp presence — what someone sees about them before they have their number.
+This noun appears in:
+Public page header: "<Name>'s WhatsApp Profile"
+Dashboard title: "Your WhatsApp Profile"
+Onboarding flow: "Let's build your WhatsApp Profile"
+OG share preview: "<Name>'s WhatsApp Profile · Powered by XPAND"
+Marketing tagline candidate: "Your WhatsApp Profile, in one link"
+If a Kiro task generates copy that calls it anything else, fix it before merging.
+
+3. The strategic shift in v2
+The original spec ended at clicks. We were going to count taps on links and call that "analytics." Two problems:
+Clicks are vanity. A coach knowing 247 people tapped her group link doesn't tell her who they were, what they wanted, or if they ever joined.
+Clicks don't compound. Every click is forgotten the moment the visitor lands in WhatsApp. The user gets nothing back.
+v2 fixes both. Every CTA on every public profile routes through a lead form. The visitor enters name, email, WhatsApp number, and message. Only then do they get the WhatsApp link. The user sees that lead in their Inbox — labelled by source, searchable, exportable.
+This single change does four things:
+Eliminates vanity metrics. Every lead is a real person with real intent.
+Creates the data layer that becomes the moat. XPAND now holds the user's audience graph, not just their click counts.
+Makes the Pro tier obvious. Free = N leads/month. Pro = unlimited + WhatsApp BSP routing in Phase 2.
+Justifies "WhatsApp Profile" as the noun. A profile that captures leads IS a profile. A page that redirects to WhatsApp is just a page.
+
+4. Users
+Primary ICP — the beachhead
+Coaches, educators, and cohort-based consultants in India who already run multiple WhatsApp surfaces.
+Why this segment first:
+Already monetizing on WhatsApp — high intent.
+Running 3–5 WhatsApp surfaces today — immediate fit.
+Comfortable with low-touch SaaS pricing.
+Active on LinkedIn, Instagram, YouTube — distributable through founder-led content.
+Expansion ICPs (post-validation)
+Community builders running paid memberships.
+Creators with a WhatsApp-native audience.
+Small businesses using WhatsApp as their storefront.
+Three personas the team should keep in mind
+Persona
+Snapshot
+What XPAND solves for them
+Priya — the coach
+Runs a paid cohort + a free community + a 1:1 support chat. Active on Instagram.
+One link to share in her Instagram bio. Captures leads from every CTA before they hit WhatsApp.
+Rohan — the creator
+YouTube creator, 80K subs. Has a broadcast channel + a fan community.
+Clean public face for his WhatsApp without sharing his number. Sees who actually wants to join.
+Asha — the community builder
+Runs three paid memberships through WhatsApp groups.
+Differentiates Free / Paid / VIP. Each tier captures its own labelled leads.
+
+5. End-to-end user journey (the happy path)
+Discovery — Priya sees a coach in her network using xpand.so/<handle>. She visits the page on her phone, sees a clean WhatsApp Profile with four labelled surfaces and CTAs like "Join community" and "Send DM."
+Signup — She taps the XPAND Love Sign in the footer. Lands on signup. Enters her WhatsApp number. Gets a 6-digit OTP via SMS. Verifies.
+Handle claim — First screen: "Claim your handle." Types priyacoaches. Available. Continues.
+First link — Second screen: "Paste your first WhatsApp link." She pastes her free community invite. Auto-detection says "Group." She labels it "Free Community" and the CTA defaults to "Join community."
+Profile goes live — Her profile is now live at xpand.so/priyacoaches with one link card.
+Add more — She adds her channel, paid mastermind, support chat. Each link auto-gets a CTA: "Follow channel," "Join community," "Send DM."
+Add email — Dashboard prompts her: "Add your email to get notified when someone messages you." She adds it, verifies via OTP, done.
+Share — Dashboard prominently shows her profile URL with a copy button. She pastes it into her Instagram bio.
+First lead — Within minutes, someone fills out her "Join community" form. Priya gets an email: "You have a new lead from Free Community." She taps through to the Inbox.
+The wow moment — She sees the lead: "Anjali Mehta · anjali@example.com · +91 98xxxxxxxx · 'Hi Priya, saw your post on Instagram, would love to join.'" This is not a click. This is a real person.
+Return — day 2 — She comes back to check the Inbox. Five new leads. Three from Free Community, two from Send DM. She didn't know Send DM would convert at all.
+Hooked — She returns daily because the Inbox tells her what's working AND brings her real people, not numbers.
+This is the journey every PRD ticket should serve. If a ticket doesn't move this journey forward, defer it.
+
+6. v1 feature scope
+In scope
+Identity & access
+Phone OTP signup + login via SMS (MSG91 primary)
+Handle reservation at xpand.so/<handle>
+Email collection in dashboard, verified via OTP for lead notifications
+Profile management
+Profile metadata (display name, bio, theme, visibility)
+Up to 10 links on free tier (warned at 5)
+Auto-detection of 6 surface types (group, community, channel, chat, business, other)
+Link CRUD: add, edit, reorder, label, delete
+CTA assignment per link (defaults from surface type, user-customizable)
+Public surface
+Public profile page at xpand.so/<handle> (server-rendered)
+3 themes (light, dark, WhatsApp green-accent)
+Cookie banner on all public profile pages
+XPAND Love Sign on free profiles
+OG share previews for WhatsApp / Instagram / Twitter
+Lead capture — the new core
+Lead capture form between visitor and the WhatsApp link (mandatory in v1)
+Form collects: name, email, WhatsApp number, message
+Spam prevention: Cloudflare Turnstile + rate limits + honeypot + validation
+Per-surface CTA copy (Join group / Send DM / Follow channel / etc.)
+Inbox — the new core
+Authenticated dashboard view of all leads
+Per-lead labelling by source (which link, which CTA)
+Mark read/unread, archive, export to CSV
+Filter by surface type, source link, date range, read status
+Search by name, email, or message content
+Analytics
+Lead conversion rate per link (not just clicks — clicks → form_started → leads_submitted)
+30-day chart of leads over time
+Top referrers, top countries, device split
+One insight: "Most-converting link this week"
+Other
+Waitlist mechanism on marketing landing for pre-launch signups
+Out of scope for v1 — defer to v2 (post-5,000 active users)
+WhatsApp Business API integration for lead routing
+Reply-to-lead from Inbox (one-tap WhatsApp reply)
+Custom domains
+Multiple profiles per user
+Team accounts
+Paid tier billing (free for everyone in v1)
+Broadcasting, CRM, contact segmentation
+Weekly digest emails
+Public API for third-party integrations
+Admin panel — use the Django admin directly
+Mobile apps (PWA if needed later)
+Per-lead encryption (use Postgres column-level later)
+Multi-language UI
+If a feature is not in the In Scope list, the answer is no. Document it as a v2 candidate and move on.
+
+7. Success metrics
+North Star
+5,000 active users. Active = a user with at least one link on their profile who has received at least one lead in the last 30 days.
+This number is the trigger to:
+Invest in XPAND as a real venture under Foundership
+Begin v2 work on the workflow layer (WhatsApp BSP integration, broadcasting)
+Roll out paid pricing
+Leading indicators (track weekly)
+% of users with 3+ links + CTAs on their profile
+% of users who verify their email (predicts engagement)
+% of profiles receiving ≥1 lead within 7 days of going live
+% of users opening the Inbox in week 2 or later
+Median leads per user per week
+Form completion rate (form started → form submitted)
+% of users who share their XPAND link publicly within 24 hours
+Anti-metrics — do not optimize for these
+Raw signups (easy to vanity-game)
+Page views (replaced by leads as the real metric)
+Clicks (we're now measuring leads, which is downstream of clicks anyway)
+Time-on-dashboard (Inbox should be quick to scan)
+
+8. Positioning rules
+These hold across all UI copy, marketing copy, and team communication.
+We are not a link-in-bio tool. Never frame XPAND in Linktree's category.
+We are not a contact form widget. We are a WhatsApp Profile that happens to capture leads.
+We are not a WhatsApp Business API reseller. Phase 2 may integrate one, v1 does not need one.
+We are not a CRM. The Inbox is read-only in v1; CRM features (tagging, segmentation, broadcasting) are v2.
+We are not an event platform. No ticketing, RSVPs, or event tooling — ever, in this product.
+We are WhatsApp-first, not WhatsApp-only. Users can add non-WhatsApp links classified as "Other," but they cannot have CTAs — only direct redirects.
+
+9. Brand & voice
+Palette: Deep Indigo (#1E1B4B) + Emerald Green (#22C55E). Green is the WhatsApp-native cue. Never drift to generic SaaS blue.
+Voice: Punchy. Short paragraphs. Verb-driven. Founder-honest.
+Words we use: clean, fast, real, ship, build, share, lead, message.
+Words we avoid: enabling, empowering, leveraging, seamless, robust, journey, ecosystem.
+Sentence length: under 15 words by default. If a sentence runs over, split it.
+Punctuation: em dashes are fine. Exclamation marks are not, except in success states. No ellipses.
+Worked examples:
+❌ "We enable creators to seamlessly manage their WhatsApp presence."
+✅ "Your WhatsApp Profile, in one link."
+❌ "Unlock powerful insights about your audience"
+✅ "Real leads. Not clicks."
+❌ "Your engagement journey starts here..."
+✅ "Get your first lead in minutes."
+
+10. Decision log
+Every meaningful product decision. Locked unless re-discussed.
+#
+Decision
+Choice
+1
+Feature decomposition
+10 features + 2 cross-cutting
+2
+Language
+English only
+3
+Auth
+Phone OTP via SMS (MSG91 primary, Gupshup or VerifyNow as backup)
+4
+First screen after signup
+Handle picker first
+5
+Profile visibility on first save
+Live immediately when first link is added
+6
+Empty profile (0 links) public?
+No — private until ≥1 link
+7
+Free tier link limit
+Soft cap — warn at 5, allow up to 10
+8
+Unknown auto-detection
+Accept as 'Other', user can classify (no CTA on Other)
+9
+Phone-number verification (in links)
+Trust paste + show warning
+10
+Public profile noun
+"WhatsApp Profile"
+11
+Watermark
+XPAND Love Sign on free, removable on Pro (v2)
+12
+Member counts public
+No
+13
+Cookie banner
+Yes, on all public profile pages
+14
+Click logging
+Replaced by form-event funnel (clicked → started → submitted)
+15
+Analytics counts UI
+Exact counts (leads, not clicks)
+16
+Analytics scope
+Standard — counts + referrers + countries + devices + funnel
+17
+Analytics freshness
+Real-time for today's leads (Redis-backed counter)
+18
+Real-time implementation
+Read from Redis for today's counters
+19
+Insight layer in v1
+v1 lite — "most-converting link" on dashboard
+20
+Steering files
+All three (product, tech, structure)
+21
+Test data
+Plausible fakes, reviewed by founder
+22
+Domain status
+xpand.so owned, DNS to be configured
+23
+Microcopy
+Written in PRD, in XPAND voice
+24
+Email role
+Lead notifications, magic-link-style verification — NOT for auth
+25
+Email provider
+AWS SES
+26
+Logo / favicon
+Founder-provided, intern drops in
+27
+v1 scope expansion
++Lead Capture +Inbox, 8 weeks total
+28
+Backend stack
+Django 5.0
+29
+Frontend stack
+Django templates + HTMX + Alpine.js + Tailwind CSS
+30
+OTP delivery
+SMS only via MSG91 (no WhatsApp/email fallback in v1)
+31
+Lead form vs direct redirect
+Lead form replaces direct — no skip option
+32
+Lead notification
+Inbox + per-lead email to user (when email verified)
+33
+Reply from Inbox
+Deferred to v2
+34
+CTA mapping
+Default per surface type, user can customize
+35
+Spam prevention
+Cloudflare Turnstile + rate limit + honeypot + format validation
+36
+Customer support
+Email (hello@xpand.so or similar)
+37
+Beta launch
+Waitlist mechanism on marketing landing
+
+11. Default CTA mapping
+These are the defaults when a user pastes a link. They can change the CTA in the link edit view.
+Surface type
+Default CTA copy
+Lead form?
+group
+Join group
+Yes (required)
+community
+Join community
+Yes (required)
+channel
+Follow channel
+Yes (required)
+chat
+Send DM
+Yes (required)
+business
+Contact me
+Yes (required)
+other
+Visit link
+No — direct redirect
+The other exception is intentional. Non-WhatsApp links (YouTube channel, website) don't have meaningful intent capture and break the WhatsApp-first promise if we lead-gate them.
+
+12. Glossary
+Term
+Meaning
+WhatsApp Profile
+The user's public page at xpand.so/<handle>. The product noun.
+Surface
+One of the WhatsApp link types: group, community, channel, chat, business, other.
+CTA
+The button copy on a link card. "Join group", "Send DM", etc.
+Handle
+The unique username at xpand.so/<handle>. URL-safe, 3–30 chars, lowercase, [a-z0-9_-].
+Link card
+One labelled link on a profile, with icon, label, description, CTA button.
+XPAND Love Sign
+Small brand mark in the footer of free profiles. "Made with 💚 on XPAND".
+Lead
+A submitted form. Has name, email, WhatsApp number, message, source link, timestamp.
+Source link
+The link card the lead came from. Used for Inbox labelling.
+Inbox
+Authenticated dashboard view of all leads for the logged-in user.
+Active user
+A user with ≥1 link who has received ≥1 lead in the last 30 days.
+DLT
+Distributed Ledger Technology. TRAI-mandated registration for SMS in India. Required for OTP.
+
+13. Pre-build owner tasks
+These do not block intern onboarding but block the v1 demo. Founder-owned.
+Task
+Owner
+When
+Why
+DLT registration with TRAI
+Founder
+Week 0 — start now
+7–21 day approval. Blocks SMS OTP.
+MSG91 account + sender ID
+Founder
+Week 0
+Needed before Sprint 1 ends.
+AWS SES domain verification
+Founder
+Week 0
+Needed for lead notification emails.
+Cloudflare account + DNS
+Founder
+Week 1
+Blocks deployment.
+Cloudflare Turnstile site keys
+Founder
+Week 3 (before Sprint 3)
+Blocks lead form.
+Logo / favicon / OG default
+Founder
+Week 1
+Drop into /public/brand/
+Privacy policy + ToS
+Founder + legal
+Week 6
+Before public launch. DPDP compliance.
+Domain: confirm xpand.so ownership
+Founder
+Done
+✓
+If DLT registration is slowing down, switch to VerifyNow — they are pre-registered with all four telcos and can be live in 10 minutes. Costs slightly more per OTP (~₹0.12 vs ₹0.15) but eliminates the 7–21 day wait.
+
+14. 4-sprint build plan
+Three sprints would be tight. Four sprints is comfortable for 3 interns.
+Sprint 1 — Foundations (Weeks 1–2)
+Goal: a logged-in user can claim a handle and see an empty profile shell (private).
+Features touched: 01 (auth-onboarding), 02 (handle-reservation), 03 (profile-management shell), 11 (design-system foundations), 12 (observability bootstrap).
+Demo: sign up with a real Indian phone number → receive OTP → verify → claim handle → see empty dashboard.
+Sprint 2 — Profile core (Weeks 3–4)
+Goal: a user can build a working profile and a visitor can see it (but not yet submit leads).
+Features touched: 04 (link-parsing), 05 (link-crud with CTA assignment), 06 (public-profile-page).
+Demo: paste 5 mixed WhatsApp links, see auto-classification with default CTAs, publish, share to a real WhatsApp group, see the profile render on visitor phones.
+Sprint 3 — Leads (Weeks 5–6)
+Goal: a visitor can submit a lead form and the user sees it in their Inbox.
+Features touched: 07 (lead-capture), 08 (inbox), 09 (deep-link-redirect-ingest — repurposed for form events).
+Demo: visitor taps a CTA, fills the form, submits, gets the WhatsApp link. User receives an email and sees the lead in their Inbox.
+Sprint 4 — Analytics + polish (Weeks 7–8)
+Goal: a user can see what's converting in real time. System is ready for public launch.
+Features touched: 10 (analytics-dashboard), 11 (design-system polish), 12 (observability hardening).
+Demo: soft-launch to XPAND Club + Foundership lists. First 50 real users, real leads in real Inboxes.
+Detailed sprint plan with ticket allocation lives in /docs/sprint-plan.md.
+
+15. Intern allocation (starting point)
+Intern
+Primary surfaces
+A (Backend-heavy)
+01 (auth + SMS), 02 (handles), 07 (lead-capture API + spam)
+B (Backend-heavy)
+03 (profile + email verify), 05 (link-crud), 09 (form-event ingest), 10 (analytics)
+C (Frontend-heavy)
+04 (link-parsing — pair with B), 06 (public profile + CTAs), 08 (inbox UI), 11 (design system)
+Shared
+12 (observability), domain/DNS setup, load testing
+Reshuffle in Week 1 once you've seen each person's strengths in practice.
+
+16. Open questions
+Tracked here so the team knows what is not yet decided.
+Pro tier billing — when does paid go live? Currently free for everyone in v1.
+Customer support workflow — single inbox or shared team email?
+Waitlist gating — invite-only at first, or open-on-launch with waitlist as a pre-launch list builder?
+High-value handle reservation — pre-reserve top Indian creator handles for outreach?
+Lead notification email format — single lead per email, or threading by source link?
+DPDP consent — explicit checkbox on lead form, or implicit via privacy policy link?
+
+17. References
+/docs/auto-detection-test-fixtures.md — sample WhatsApp links for parser tests
+/docs/error-empty-state-copy.md — consolidated copy deck
+/docs/sprint-plan.md — detailed sprint planning
+/.kiro/steering/product.md — brand voice for Kiro
+/.kiro/steering/tech.md — stack rules for Kiro
+/.kiro/steering/structure.md — code conventions for Kiro
+/specs/01-auth-onboarding/ through /specs/12-observability-ops/ — feature specs
+
+XPAND is a Foundership venture. Building the WhatsApp-first economy.

@@ -1,0 +1,112 @@
+<div class="space-y-2" id="links-list">
+    {% for l in links %}
+    <div class="group flex items-center gap-3 p-3.5 bg-theme-surface border border-theme-border rounded-xl hover:border-brand-500/30 transition-all"
+         data-id="{{ l.id }}">
+
+        <!-- Hidden input for sort form -->
+        <input type="hidden" name="link_id" value="{{ l.id }}" form="sort-form">
+
+        <!-- Drag handle -->
+        <span class="sort-handle cursor-grab text-theme-muted/50 group-hover:text-theme-muted flex-shrink-0 p-1 rounded-lg hover:bg-theme-hover">
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                <circle cx="7" cy="5" r="1.5"/><circle cx="13" cy="5" r="1.5"/>
+                <circle cx="7" cy="10" r="1.5"/><circle cx="13" cy="10" r="1.5"/>
+                <circle cx="7" cy="15" r="1.5"/><circle cx="13" cy="15" r="1.5"/>
+            </svg>
+        </span>
+
+        <!-- Surface type icon -->
+        <div class="w-8 h-8 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center flex-shrink-0">
+            <svg class="w-3.5 h-3.5 text-brand-400" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.136.558 4.136 1.535 5.875L0 24l6.296-1.507A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.048-1.395l-.362-.215-3.739.895.928-3.638-.236-.374A9.818 9.818 0 1112 21.818z"/>
+            </svg>
+        </div>
+
+        <!-- Link details -->
+        <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+                <p class="text-sm font-semibold text-theme-text truncate">{{ l.label }}</p>
+                {% if not l.is_active %}
+                <span class="flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider bg-theme-border text-theme-muted">Off</span>
+                {% endif %}
+            </div>
+            <div class="flex items-center gap-2 mt-0.5">
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-brand-500/8 border border-brand-500/15 text-brand-400 font-bold uppercase tracking-wider flex-shrink-0">
+                    {{ l.get_surface_type_display }}
+                </span>
+                <span class="text-[11px] text-theme-muted truncate">{{ l.url }}</span>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center gap-2 flex-shrink-0">
+            <!-- Analytics -->
+            <button hx-get="{% url 'profiles:link_analytics' l.id %}" hx-target="#analytics-modal-container" hx-swap="innerHTML"
+                @click="openAnalytics = true"
+                class="w-7 h-7 rounded-lg flex items-center justify-center text-theme-muted hover:text-brand-400 hover:bg-brand-500/10 transition-all"
+                title="View Analytics">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+            </button>
+
+            <!-- Edit -->
+            <button hx-get="{% url 'profiles:edit_link' l.id %}" hx-target="#edit-modal-container" hx-swap="innerHTML"
+                @click="openEdit = true"
+                class="w-7 h-7 rounded-lg flex items-center justify-center text-theme-muted hover:text-brand-400 hover:bg-brand-500/10 transition-all"
+                title="Edit Button">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+            </button>
+
+            <!-- Active toggle -->
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="is_active" value="true" class="sr-only peer"
+                    {% if l.is_active %}checked{% endif %}
+                    hx-post="{% url 'profiles:toggle_link' l.id %}"
+                    hx-vals='js:{"is_active": event.target.checked}'
+                    hx-target="#links-list-container">
+                <div class="w-10 h-5 bg-theme-btn-bg border border-theme-btn-border rounded-full
+                    peer-checked:bg-brand-500
+                    after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all
+                    peer-checked:after:translate-x-5"></div>
+            </label>
+
+            <!-- Delete -->
+            <button hx-post="{% url 'profiles:delete_link' l.id %}" hx-confirm="Delete this link?" hx-target="#links-list-container"
+                class="w-7 h-7 rounded-lg flex items-center justify-center text-theme-muted hover:text-red-400 hover:bg-red-500/10 transition-all"
+                title="Delete">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+    {% empty %}
+    <div class="flex flex-col items-center justify-center py-12 border border-dashed border-theme-border rounded-2xl text-center">
+        <div class="w-12 h-12 rounded-2xl bg-theme-surface border border-theme-border flex items-center justify-center mb-3">
+            <svg class="w-5 h-5 text-theme-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+            </svg>
+        </div>
+        <p class="text-sm font-semibold text-theme-text">No links yet</p>
+        <p class="text-xs text-theme-muted mt-1">Add your first WhatsApp CTA button above</p>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+    (function () {
+        const el = document.getElementById('links-list');
+        if (el) {
+            new Sortable(el, {
+                animation: 150,
+                handle: '.sort-handle',
+                ghostClass: 'opacity-40',
+                onEnd: function () { htmx.trigger('#sort-form', 'submit'); }
+            });
+        }
+    })();
+</script>

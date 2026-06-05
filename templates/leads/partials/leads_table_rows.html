@@ -1,0 +1,47 @@
+{% for lead in leads %}
+<tr class="hover:bg-theme-hover transition-colors group">
+    <td class="px-5 py-3.5">
+        <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-brand-500/10 border border-brand-500/15 flex items-center justify-center flex-shrink-0 text-xs font-bold text-brand-400">
+                {{ lead.name|slice:":1"|upper }}
+            </div>
+            <div class="min-w-0">
+                <p class="font-semibold text-theme-text text-xs leading-tight">{{ lead.name }}</p>
+                <p class="text-[11px] text-theme-muted mt-0.5 truncate">{{ lead.email }}</p>
+                <p class="text-[11px] text-theme-muted font-mono">{{ lead.whatsapp_number }}</p>
+            </div>
+        </div>
+    </td>
+    <td class="px-5 py-3.5">
+        <p class="text-xs font-semibold text-theme-text leading-tight">{{ lead.link_label_snapshot }}</p>
+        <p class="text-[11px] text-theme-muted mt-0.5">{{ lead.cta_text_snapshot }}</p>
+    </td>
+    <td class="px-5 py-3.5 max-w-[200px]">
+        {% if lead.message %}
+        <p class="text-xs text-theme-muted truncate" title="{{ lead.message }}">{{ lead.message }}</p>
+        {% else %}
+        <span class="text-[11px] text-theme-muted/50">—</span>
+        {% endif %}
+    </td>
+    <td class="px-5 py-3.5 text-[11px] text-theme-muted whitespace-nowrap font-mono">
+        {{ lead.created_at|date:"Y-m-d" }}<br>
+        <span class="text-[10px] opacity-70">{{ lead.created_at|date:"H:i" }}</span>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="4" class="px-5 py-16 text-center">
+        <div class="flex flex-col items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-theme-surface border border-theme-border flex items-center justify-center">
+                <svg class="w-5 h-5 text-theme-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+            </div>
+            <div>
+                <p class="text-sm font-semibold text-theme-text">No leads yet</p>
+                <p class="text-xs text-theme-muted mt-0.5">Share your profile link to start capturing leads</p>
+            </div>
+        </div>
+    </td>
+</tr>
+{% endfor %}

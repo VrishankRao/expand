@@ -1,0 +1,72 @@
+<div class="space-y-5 animate-slide-up">
+    <!-- Header -->
+    <div class="text-center pr-8">
+        <h3 class="text-base font-bold text-theme-text">Before we connect you…</h3>
+        <p class="text-xs text-theme-muted mt-1">Quick info to get you on WhatsApp</p>
+    </div>
+
+    <form hx-post="{% url 'leads:capture_lead' profile.handle link.id %}" hx-target="#capture-form-container" hx-swap="innerHTML" class="space-y-4">
+        {% csrf_token %}
+
+        <!-- Honeypot (must stay hidden) -->
+        <div class="hidden">
+            <label for="phone">Phone</label>
+            <input type="text" name="phone" id="phone" value="">
+        </div>
+
+        <!-- Name -->
+        <div>
+            <label for="name" class="block text-[10px] font-bold uppercase tracking-widest text-theme-label mb-1.5">Your Name</label>
+            <input type="text" name="name" id="name" required placeholder="Full name" value="{{ name|default:'' }}"
+                class="w-full px-3.5 py-2.5 bg-theme-input border {% if errors.name %}border-red-500/50{% else %}border-theme-input-border{% endif %} rounded-xl text-sm text-theme-input-text placeholder-theme-placeholder">
+            {% if errors.name %}
+            <p class="text-red-400 text-[11px] mt-1.5 flex items-center gap-1">
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8"/></svg>
+                {{ errors.name }}
+            </p>
+            {% endif %}
+        </div>
+
+        <!-- Email -->
+        <div>
+            <label for="email" class="block text-[10px] font-bold uppercase tracking-widest text-theme-label mb-1.5">Your Email</label>
+            <input type="email" name="email" id="email" required placeholder="you@email.com" value="{{ email|default:'' }}"
+                class="w-full px-3.5 py-2.5 bg-theme-input border {% if errors.email %}border-red-500/50{% else %}border-theme-input-border{% endif %} rounded-xl text-sm text-theme-input-text placeholder-theme-placeholder">
+            {% if errors.email %}
+            <p class="text-red-400 text-[11px] mt-1.5 flex items-center gap-1">
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8"/></svg>
+                {{ errors.email }}
+            </p>
+            {% endif %}
+        </div>
+
+        <!-- WhatsApp number -->
+        <div>
+            <label for="whatsapp_number" class="block text-[10px] font-bold uppercase tracking-widest text-theme-label mb-1.5">Your WhatsApp Number</label>
+            <input type="tel" name="whatsapp_number" id="whatsapp_number" required placeholder="+919876543210" value="{{ whatsapp_number|default:'' }}"
+                class="w-full px-3.5 py-2.5 bg-theme-input border {% if errors.whatsapp_number %}border-red-500/50{% else %}border-theme-input-border{% endif %} rounded-xl text-sm text-theme-input-text placeholder-theme-placeholder font-mono">
+            {% if errors.whatsapp_number %}
+            <p class="text-red-400 text-[11px] mt-1.5 flex items-center gap-1">
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8"/></svg>
+                {{ errors.whatsapp_number }}
+            </p>
+            {% endif %}
+        </div>
+
+        <!-- Message (optional) -->
+        <div>
+            <label for="message" class="block text-[10px] font-bold uppercase tracking-widest text-theme-label mb-1.5">Message (Optional)</label>
+            <textarea name="message" id="message" rows="3" placeholder="Hi! I want to ask about…"
+                class="w-full px-3.5 py-2.5 bg-theme-input border border-theme-input-border rounded-xl text-sm text-theme-input-text placeholder-theme-placeholder resize-none">{{ message|default:'' }}</textarea>
+        </div>
+
+        <button type="submit"
+            class="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold shadow-lg shadow-brand-500/25 hover:-translate-y-0.5 active:translate-y-0 transition-all">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.136.558 4.136 1.535 5.875L0 24l6.296-1.507A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.048-1.395l-.362-.215-3.739.895.928-3.638-.236-.374A9.818 9.818 0 1112 21.818z"/>
+            </svg>
+            Submit & Open WhatsApp
+        </button>
+    </form>
+</div>

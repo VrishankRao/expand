@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Reserve Your Handle — XPAND{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center px-4 py-12 relative overflow-hidden">
+
+    <!-- Background decoration -->
+    <div class="pointer-events-none absolute inset-0 overflow-hidden">
+        <div class="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-brand-500/5 blur-3xl"></div>
+        <div class="absolute -bottom-32 -left-32 w-80 h-80 rounded-full bg-brand-500/5 blur-3xl"></div>
+    </div>
+
+    <div class="relative z-10 w-full max-w-[420px]">
+
+        <!-- Step indicator -->
+        <div class="flex items-center gap-2 justify-center mb-8">
+            <div class="flex items-center gap-1.5">
+                <div class="w-6 h-6 rounded-full bg-brand-500 flex items-center justify-center text-[10px] font-bold text-white">✓</div>
+                <span class="text-[10px] text-theme-muted font-medium">Verified</span>
+            </div>
+            <div class="flex-1 h-px bg-theme-border max-w-[32px]"></div>
+            <div class="flex items-center gap-1.5">
+                <div class="w-6 h-6 rounded-full bg-brand-500 flex items-center justify-center text-[10px] font-bold text-white">2</div>
+                <span class="text-[10px] text-brand-400 font-semibold">Reserve Handle</span>
+            </div>
+            <div class="flex-1 h-px bg-theme-border max-w-[32px]"></div>
+            <div class="flex items-center gap-1.5">
+                <div class="w-6 h-6 rounded-full border border-theme-border flex items-center justify-center text-[10px] font-medium text-theme-muted">3</div>
+                <span class="text-[10px] text-theme-muted font-medium">Dashboard</span>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold text-theme-text tracking-tight">Claim your handle</h1>
+            <p class="text-theme-muted text-sm mt-1">Your public profile will live at <span class="text-brand-400 font-semibold">xpand.so/handle</span></p>
+        </div>
+
+        <!-- Form card -->
+        <div class="bg-theme-card border border-theme-border rounded-2xl p-6 shadow-xl glow-green space-y-5">
+
+            {% if non_field_errors %}
+            <div class="flex items-start gap-3 p-3.5 bg-red-500/8 border border-red-500/20 rounded-xl">
+                <svg class="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p class="text-xs text-red-400 font-medium">{{ non_field_errors.0 }}</p>
+            </div>
+            {% endif %}
+
+            <form method="POST" action="{% url 'profiles:create_profile' %}" class="space-y-4"
+                  x-data="{ handle: '{{ handle|default:'' }}', name: '{{ display_name|default:'' }}' }">
+                {% csrf_token %}
+
+                <div>
+                    <label for="handle" class="block text-xs font-semibold uppercase tracking-wider text-theme-label mb-1.5">
+                        Handle
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-400 text-sm font-bold pointer-events-none">@</span>
+                        <input type="text" name="handle" id="handle" required placeholder="yourname"
+                            x-model="handle"
+                            value="{{ handle|default:'' }}"
+                            class="block w-full pl-9 pr-4 py-3 bg-theme-input border {% if errors.handle %}border-red-500/50{% else %}border-theme-input-border{% endif %} rounded-xl text-theme-input-text placeholder-theme-placeholder text-sm font-medium">
+                    </div>
+                    {% if errors.handle %}
+                    <p class="text-red-400 text-[11px] mt-1.5 flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                        {{ errors.handle.0 }}
+                    </p>
+                    {% endif %}
+                    <p class="text-[11px] text-theme-muted mt-1.5 flex items-center gap-1">
+                        <span x-show="handle.length > 0" class="text-brand-400">xpand.so/<span x-text="handle"></span></span>
+                        <span x-show="handle.length === 0">3–30 chars, lowercase letters, numbers, underscores</span>
+                    </p>
+                </div>
+
+                <div>
+                    <label for="display_name" class="block text-xs font-semibold uppercase tracking-wider text-theme-label mb-1.5">
+                        Display Name
+                    </label>
+                    <input type="text" name="display_name" id="display_name" required placeholder="Your Name"
+                        x-model="name"
+                        value="{{ display_name|default:'' }}"
+                        class="block w-full px-4 py-3 bg-theme-input border {% if errors.display_name %}border-red-500/50{% else %}border-theme-input-border{% endif %} rounded-xl text-theme-input-text placeholder-theme-placeholder text-sm font-medium">
+                    {% if errors.display_name %}
+                    <p class="text-red-400 text-[11px] mt-1.5 flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                        {{ errors.display_name.0 }}
+                    </p>
+                    {% endif %}
+                </div>
+
+                <button type="submit"
+                    class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold text-white bg-brand-500 hover:bg-brand-600 hover:-translate-y-0.5 shadow-lg shadow-brand-500/20 active:translate-y-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3l14 9-14 9V3z"/>
+                    </svg>
+                    Reserve WhatsApp Profile
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

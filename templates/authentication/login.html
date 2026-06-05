@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Log In — XPAND{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center px-4 py-12 relative overflow-hidden">
+
+    <!-- Background decoration -->
+    <div class="pointer-events-none absolute inset-0 overflow-hidden">
+        <div class="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-brand-500/5 blur-3xl"></div>
+        <div class="absolute -bottom-32 -left-32 w-80 h-80 rounded-full bg-brand-500/5 blur-3xl"></div>
+    </div>
+
+    <div class="relative z-10 w-full max-w-[400px]">
+
+        <!-- Back link -->
+        <div class="mb-6">
+            <a href="{% url 'authentication:signup' %}" class="inline-flex items-center gap-1.5 text-xs text-theme-muted hover:text-theme-text font-medium">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                Back to sign up
+            </a>
+        </div>
+
+        <!-- Brand mark -->
+        <div class="mb-8">
+            <div class="inline-flex items-center gap-2 mb-5">
+                <div class="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center shadow-lg shadow-brand-500/30">
+                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                        <path d="M12 0C5.373 0 0 5.373 0 12c0 2.136.558 4.136 1.535 5.875L0 24l6.296-1.507A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.048-1.395l-.362-.215-3.739.895.928-3.638-.236-.374A9.818 9.818 0 1112 21.818z"/>
+                    </svg>
+                </div>
+                <span class="text-lg font-bold tracking-tight text-theme-text">XPAND</span>
+            </div>
+            <h1 class="text-2xl font-bold text-theme-text tracking-tight">Welcome back</h1>
+            <p class="text-theme-muted text-sm mt-1">Enter your phone number to continue.</p>
+        </div>
+
+        <!-- Auth container — swapped by HTMX -->
+        <div id="auth-container"
+             class="bg-theme-card border border-theme-border rounded-2xl p-6 shadow-xl glow-green space-y-5 animate-fade-in">
+            <form hx-post="{% url 'authentication:login' %}" hx-target="#auth-container" hx-swap="innerHTML" class="space-y-5"
+                  x-data="{ phone: '' }">
+                {% csrf_token %}
+
+                <div>
+                    <label for="phone_number" class="block text-xs font-semibold uppercase tracking-wider text-theme-label mb-1.5">
+                        Phone Number
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-theme-muted text-sm font-semibold pointer-events-none select-none">+91</span>
+                        <input type="tel" name="phone_number" id="phone_number" required placeholder="98765 43210"
+                            x-model="phone"
+                            x-on:input="phone = phone.replace(/[^0-9]/g, '').slice(0, 10)"
+                            class="block w-full pl-12 pr-4 py-3 bg-theme-input border border-theme-input-border rounded-xl text-theme-input-text placeholder-theme-placeholder text-sm font-medium">
+                    </div>
+                    <div id="login-error" class="mt-2"></div>
+                </div>
+
+                <button type="submit"
+                    x-bind:disabled="phone.length !== 10"
+                    x-bind:class="phone.length !== 10 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-brand-600 hover:-translate-y-0.5 shadow-lg shadow-brand-500/20'"
+                    class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold text-white bg-brand-500 transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                    </svg>
+                    Send OTP Code
+                </button>
+
+                <p class="text-center text-xs text-theme-muted">
+                    New to XPAND?
+                    <a href="{% url 'authentication:signup' %}" class="text-brand-500 hover:text-brand-400 font-semibold ml-0.5">Create account</a>
+                </p>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

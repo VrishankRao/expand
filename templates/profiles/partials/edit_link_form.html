@@ -1,0 +1,43 @@
+<h3 class="text-sm font-bold text-theme-text mb-4">Edit WhatsApp CTA</h3>
+
+<form hx-post="{% url 'profiles:edit_link' link.id %}" hx-target="#edit-modal-container" class="space-y-4">
+    {% csrf_token %}
+
+    {% if error %}
+    <div class="text-red-400 text-xs p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    <div>
+        <label for="edit_label" class="block text-[10px] font-bold uppercase tracking-widest text-theme-label mb-1.5">Button Label</label>
+        <input type="text" name="label" id="edit_label" value="{{ submitted_label }}" required placeholder="Button label (e.g. Chat with us)"
+            class="w-full bg-theme-input border border-theme-input-border rounded-xl px-3.5 py-2.5 text-sm text-theme-input-text placeholder-theme-placeholder">
+    </div>
+
+    <div>
+        <label for="edit_url" class="block text-[10px] font-bold uppercase tracking-widest text-theme-label mb-1.5">WhatsApp Link</label>
+        <input type="url" name="url" id="edit_url" value="{{ submitted_url }}" required placeholder="wa.me/... or whatsapp.com/..."
+            class="w-full bg-theme-input border border-theme-input-border rounded-xl px-3.5 py-2.5 text-sm text-theme-input-text placeholder-theme-placeholder">
+    </div>
+
+    <div>
+        <label for="edit_surface_type" class="block text-[10px] font-bold uppercase tracking-widest text-theme-label mb-1.5">Type</label>
+        <select name="surface_type" id="edit_surface_type" required
+            class="w-full bg-theme-input border border-theme-input-border rounded-xl px-3.5 py-2.5 text-sm text-theme-input-text">
+            <option value="group" {% if submitted_surface_type == 'group' %}selected{% endif %}>Group</option>
+            <option value="community" {% if submitted_surface_type == 'community' %}selected{% endif %}>Community</option>
+            <option value="channel" {% if submitted_surface_type == 'channel' %}selected{% endif %}>Channel</option>
+        </select>
+    </div>
+
+    <div class="pt-2">
+        <button type="submit"
+            class="w-full flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-600 text-white py-2.5 text-sm font-bold rounded-xl hover:-translate-y-0.5 shadow-lg shadow-brand-500/15 active:translate-y-0">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            Save Changes
+        </button>
+    </div>
+</form>
