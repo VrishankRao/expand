@@ -22,7 +22,7 @@
     </div>
 
     <script>
-        window.open("{{ target_url|escapejs }}", "_blank");
+        window.location.href = "{{ target_url|escapejs }}";
         setTimeout(() => {
             window.dispatchEvent(new CustomEvent("close-modal"));
         }, 1800);

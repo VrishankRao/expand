@@ -17,12 +17,15 @@ def dashboard_view(request):
         return redirect("profiles:create_profile")
         
     links = profile.links.all().order_by("sort_order", "created_at")
-    leads = Lead.objects.filter(link__profile=profile).order_by("-created_at")
+    active_leads = Lead.objects.filter(link__profile=profile, is_archived=False).order_by("-created_at")
+    total_leads = Lead.objects.filter(link__profile=profile)
+    leads_count = total_leads.values("whatsapp_number").distinct().count()
     
     return render(request, "profiles/dashboard.html", {
         "profile": profile,
         "links": links,
-        "leads": leads,
+        "leads": active_leads,
+        "leads_count": leads_count,
     })
 
 @login_required
@@ -169,8 +172,8 @@ def add_link_view(request):
             
             active_count = profile.links.filter(is_active=True).count()
             warning_msg = ""
-            if active_count == 4:
-                warning_msg = '<div class="text-amber-500 text-xs mt-2" id="link-add-msg" hx-swap-oob="true">Soft cap warning: you have 4 active links. Limit is 5.</div>'
+            if active_count == 9:
+                warning_msg = '<div class="text-amber-500 text-xs mt-2" id="link-add-msg" hx-swap-oob="true">Soft cap warning: you have 9 active links. Limit is 10.</div>'
             else:
                 warning_msg = '<div id="link-add-msg" hx-swap-oob="true"></div>'
                 
@@ -197,10 +200,10 @@ def toggle_link_view(request, pk):
         # Enforce count caps when toggling link active
         if is_active:
             active_count = profile.links.filter(is_active=True).exclude(pk=link.pk).count()
-            if active_count >= 5:
+            if active_count >= 10:
                 links = profile.links.all().order_by("sort_order", "created_at")
                 response = render(request, "profiles/partials/links_list.html", {"links": links})
-                response.write('<div class="text-red-400 text-xs mt-2" id="link-add-msg" hx-swap-oob="true">Cannot activate. Limit is 5 active links.</div>')
+                response.write('<div class="text-red-400 text-xs mt-2" id="link-add-msg" hx-swap-oob="true">Cannot activate. Limit is 10 active links.</div>')
                 return response
                 
         link.is_active = is_active
@@ -269,62 +272,213 @@ def update_theme_view(request):
             return response
     return HttpResponse(status=400)
 
+
+def get_country_from_phone(phone: str) -> str:
+    if not phone:
+        return "Unknown"
+    phone = phone.strip()
+    if not phone.startswith("+"):
+        if len(phone) == 10:
+            return "India"
+        return "Unknown"
+        
+    prefixes = {
+        "+1": "United States/Canada",
+        "+30": "Greece",
+        "+31": "Netherlands",
+        "+32": "Belgium",
+        "+33": "France",
+        "+34": "Spain",
+        "+36": "Hungary",
+        "+39": "Italy",
+        "+40": "Romania",
+        "+41": "Switzerland",
+        "+43": "Austria",
+        "+44": "United Kingdom",
+        "+45": "Denmark",
+        "+46": "Sweden",
+        "+47": "Norway",
+        "+48": "Poland",
+        "+49": "Germany",
+        "+51": "Peru",
+        "+52": "Mexico",
+        "+53": "Cuba",
+        "+54": "Argentina",
+        "+55": "Brazil",
+        "+56": "Chile",
+        "+57": "Colombia",
+        "+58": "Venezuela",
+        "+60": "Malaysia",
+        "+61": "Australia",
+        "+62": "Indonesia",
+        "+63": "Philippines",
+        "+64": "New Zealand",
+        "+65": "Singapore",
+        "+66": "Thailand",
+        "+81": "Japan",
+        "+82": "South Korea",
+        "+84": "Vietnam",
+        "+86": "China",
+        "+90": "Turkey",
+        "+91": "India",
+        "+92": "Pakistan",
+        "+93": "Afghanistan",
+        "+94": "Sri Lanka",
+        "+95": "Myanmar",
+        "+98": "Iran",
+        "+212": "Morocco",
+        "+213": "Algeria",
+        "+216": "Tunisia",
+        "+218": "Libya",
+        "+221": "Senegal",
+        "+233": "Ghana",
+        "+234": "Nigeria",
+        "+237": "Cameroon",
+        "+244": "Angola",
+        "+250": "Rwanda",
+        "+251": "Ethiopia",
+        "+254": "Kenya",
+        "+255": "Tanzania",
+        "+256": "Uganda",
+        "+260": "Zambia",
+        "+263": "Zimbabwe",
+        "+267": "Botswana",
+        "+351": "Portugal",
+        "+352": "Luxembourg",
+        "+353": "Ireland",
+        "+354": "Iceland",
+        "+355": "Albania",
+        "+356": "Malta",
+        "+357": "Cyprus",
+        "+359": "Bulgaria",
+        "+370": "Lithuania",
+        "+371": "Latvia",
+        "+372": "Estonia",
+        "+373": "Moldova",
+        "+374": "Armenia",
+        "+375": "Belarus",
+        "+376": "Andorra",
+        "+377": "Monaco",
+        "+380": "Ukraine",
+        "+381": "Serbia",
+        "+382": "Montenegro",
+        "+385": "Croatia",
+        "+386": "Slovenia",
+        "+387": "Bosnia & Herzegovina",
+        "+389": "North Macedonia",
+        "+420": "Czech Republic",
+        "+421": "Slovakia",
+        "+423": "Liechtenstein",
+        "+502": "Guatemala",
+        "+503": "El Salvador",
+        "+504": "Honduras",
+        "+505": "Nicaragua",
+        "+506": "Costa Rica",
+        "+507": "Panama",
+        "+591": "Bolivia",
+        "+593": "Ecuador",
+        "+595": "Paraguay",
+        "+598": "Uruguay",
+        "+673": "Brunei",
+        "+852": "Hong Kong",
+        "+853": "Macau",
+        "+855": "Cambodia",
+        "+856": "Laos",
+        "+880": "Bangladesh",
+        "+886": "Taiwan",
+        "+960": "Maldives",
+        "+961": "Lebanon",
+        "+962": "Jordan",
+        "+964": "Iraq",
+        "+965": "Kuwait",
+        "+966": "Saudi Arabia",
+        "+967": "Yemen",
+        "+968": "Oman",
+        "+971": "United Arab Emirates",
+        "+972": "Israel",
+        "+973": "Bahrain",
+        "+974": "Qatar",
+        "+975": "Bhutan",
+        "+976": "Mongolia",
+        "+977": "Nepal",
+        "+992": "Tajikistan",
+        "+994": "Azerbaijan",
+        "+995": "Georgia",
+        "+996": "Kyrgyzstan",
+        "+998": "Uzbekistan",
+    }
+    sorted_prefixes = sorted(prefixes.keys(), key=len, reverse=True)
+    for prefix in sorted_prefixes:
+        if phone.startswith(prefix):
+            return prefixes[prefix]
+    return "Other"
+
+
 @login_required
 def link_analytics_view(request, pk):
     profile = get_object_or_404(Profile, user=request.user)
     link = get_object_or_404(Link, pk=pk, profile=profile)
     
-    # Get form views from cache
-    views_key = f"link_views_{link.id}"
-    views = cache.get(views_key, 0)
+    # Get form views from database (unique logged-in users by phone_number + unique anonymous visitors by ip_address)
+    unique_logged_in = link.clicks.exclude(phone_number__isnull=True).values("phone_number").distinct().count()
+    unique_anonymous = link.clicks.filter(phone_number__isnull=True).values("ip_address").distinct().count()
+    views = unique_logged_in + unique_anonymous
     
-    leads_count = link.leads.count()
+    # Process unique leads based on unique WhatsApp phone numbers on this link to prevent spam
+    seen_phones = set()
+    unique_leads = []
+    for lead in link.leads.all().order_by('created_at'):
+        if lead.whatsapp_number not in seen_phones:
+            seen_phones.add(lead.whatsapp_number)
+            unique_leads.append(lead)
+            
+    leads_count = len(unique_leads)
     
     # If views is less than leads, adjust views to make it realistic
     if views < leads_count:
         views = leads_count
-        cache.set(views_key, views, timeout=None)
+
         
     conversion_rate = 0.0
     if views > 0:
         conversion_rate = round((leads_count / views) * 100, 1)
         
-    # Devices and browsers breakdown from user agent
+    # Devices and countries breakdown
     devices = {"Mobile": 0, "Desktop": 0}
-    browsers = {"Chrome": 0, "Safari": 0, "Firefox": 0, "Other": 0}
+    countries = {}
     
-    for lead in link.leads.all():
+    for lead in unique_leads:
         ua = lead.user_agent.lower() if lead.user_agent else ""
         if not ua:
             devices["Desktop"] += 1
-            browsers["Other"] += 1
-            continue
-            
-        # Device
-        if "mobile" in ua or "android" in ua or "iphone" in ua or "ipad" in ua:
-            devices["Mobile"] += 1
         else:
-            devices["Desktop"] += 1
-            
-        # Browser
-        if "chrome" in ua:
-            browsers["Chrome"] += 1
-        elif "safari" in ua:
-            browsers["Safari"] += 1
-        elif "firefox" in ua:
-            browsers["Firefox"] += 1
-        else:
-            browsers["Other"] += 1
+            # Device
+            if "mobile" in ua or "android" in ua or "iphone" in ua or "ipad" in ua:
+                devices["Mobile"] += 1
+            else:
+                devices["Desktop"] += 1
+                
+        # Country lookup from WhatsApp phone number
+        country = get_country_from_phone(lead.whatsapp_number)
+        countries[country] = countries.get(country, 0) + 1
 
-    # Daily leads over the last 7 days
+    # Sort countries by count descending
+    sorted_countries = dict(sorted(countries.items(), key=lambda item: item[1], reverse=True))
+
+    # Daily leads over the last 7 days from unique leads
     from django.utils import timezone
     import datetime
     
+    daily_counts = {}
+    for lead in unique_leads:
+        lead_date = lead.created_at.date()
+        daily_counts[lead_date] = daily_counts.get(lead_date, 0) + 1
+
     today = timezone.now().date()
     daily_stats = []
     for i in range(6, -1, -1):
         day = today - datetime.timedelta(days=i)
-        count = link.leads.filter(created_at__date=day).count()
+        count = daily_counts.get(day, 0)
         daily_stats.append({
             "date": day.strftime("%b %d"),
             "count": count
@@ -336,9 +490,87 @@ def link_analytics_view(request, pk):
         "leads_count": leads_count,
         "conversion_rate": conversion_rate,
         "devices": devices,
-        "browsers": browsers,
+        "countries": sorted_countries,
         "daily_stats": daily_stats
     })
+
+
+@login_required
+def link_insights_view(request):
+    profile = get_object_or_404(Profile, user=request.user)
+    links = profile.links.all()
+    
+    from django.utils import timezone
+    import datetime
+    
+    last_7_days_start = timezone.now() - datetime.timedelta(days=7)
+    
+    best_link = None
+    best_cvr = 0.0
+    best_views = 0
+    best_leads = 0
+    
+    for link in links:
+        # Clicks in the last 7 days
+        clicks_last_7_days = link.clicks.filter(created_at__gte=last_7_days_start)
+        unique_logged_in = clicks_last_7_days.exclude(phone_number__isnull=True).values("phone_number").distinct().count()
+        unique_anonymous = clicks_last_7_days.filter(phone_number__isnull=True).values("ip_address").distinct().count()
+        views_7d = unique_logged_in + unique_anonymous
+        
+        # Leads in the last 7 days
+        leads_last_7_days = link.leads.filter(created_at__gte=last_7_days_start)
+        seen_phones = set()
+        unique_leads = []
+        for lead in leads_last_7_days.order_by('created_at'):
+            if lead.whatsapp_number not in seen_phones:
+                seen_phones.add(lead.whatsapp_number)
+                unique_leads.append(lead)
+        leads_count_7d = len(unique_leads)
+        
+        # Adjust views if clicks is lower than leads (realistic safeguard)
+        if views_7d < leads_count_7d:
+            views_7d = leads_count_7d
+            
+        cvr_7d = 0.0
+        if views_7d > 0:
+            cvr_7d = round((leads_count_7d / views_7d) * 100, 1)
+            
+        # Tie-breaking rules:
+        # 1. Higher conversion ratio
+        # 2. If equal, higher lead count
+        # 3. If still equal, higher views count
+        # 4. If still equal, fallback to earlier link (implicit in loop order)
+        if best_link is None:
+            best_link = link
+            best_cvr = cvr_7d
+            best_views = views_7d
+            best_leads = leads_count_7d
+        else:
+            if cvr_7d > best_cvr:
+                best_link = link
+                best_cvr = cvr_7d
+                best_views = views_7d
+                best_leads = leads_count_7d
+            elif cvr_7d == best_cvr:
+                if leads_count_7d > best_leads:
+                    best_link = link
+                    best_cvr = cvr_7d
+                    best_views = views_7d
+                    best_leads = leads_count_7d
+                elif leads_count_7d == best_leads and views_7d > best_views:
+                    best_link = link
+                    best_cvr = cvr_7d
+                    best_views = views_7d
+                    best_leads = leads_count_7d
+
+    return render(request, "profiles/partials/link_insights.html", {
+        "best_link": best_link,
+        "best_cvr": best_cvr,
+        "best_views": best_views,
+        "best_leads": best_leads,
+        "has_links": links.exists(),
+    })
+
 
 @login_required
 def links_list_view(request):
@@ -391,3 +623,22 @@ def edit_link_view(request, pk):
         "submitted_url": link.url,
         "submitted_surface_type": link.surface_type,
     })
+
+
+@login_required
+def search_handle_view(request):
+    if request.method == "POST":
+        handle = request.POST.get("handle", "").strip().lower()
+        if not handle:
+            return HttpResponse('<div class="text-red-400 font-medium">Handle is required.</div>', status=400)
+        
+        try:
+            profile = Profile.objects.get(handle__iexact=handle)
+            response = HttpResponse()
+            response["HX-Redirect"] = f"/{profile.handle}/"
+            return response
+        except Profile.DoesNotExist:
+            return HttpResponse(f'<div class="text-red-400 font-medium mt-1">Handle "@{handle}" not found.</div>')
+            
+    return HttpResponseForbidden()
+

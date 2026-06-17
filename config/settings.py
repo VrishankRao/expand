@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     
     # Third-party apps
     "corsheaders",
+    "storages",
     
     # Local apps
     "apps.authentication.apps.AuthenticationConfig",
@@ -70,7 +71,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "apps.profiles.context_processors.theme_context",
+                "apps.profiles.context_processors.theme_context"
             ],
         },
     },
@@ -82,7 +83,7 @@ import sys
 
 # Detect if postgres database library and libpq wrapper are available
 HAS_POSTGRES = False
-if "test" not in sys.argv:
+if "test" not in sys.argv and env("DATABASE_URL", default="").startswith("postgresql"):
     try:
         import psycopg
         from psycopg.pq import import_from_libpq
@@ -99,6 +100,17 @@ if "test" in sys.argv or not HAS_POSTGRES:
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
+else:
+    DATABASES = {
+        "default": env.db(),
+    }
+
+# Cache connection details
+HAS_REDIS = False
+if "test" not in sys.argv and env("REDIS_URL", default="").startswith("redis"):
+    HAS_REDIS = True
+
+if "test" in sys.argv or not HAS_REDIS:
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
@@ -106,11 +118,6 @@ if "test" in sys.argv or not HAS_POSTGRES:
         }
     }
 else:
-    DATABASES = {
-        "default": env.db(),
-    }
-
-    # Redis caching definitions
     CACHES = {
         "default": {
             "BACKEND": "django_redis.cache.RedisCache",
@@ -164,8 +171,37 @@ AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
 AWS_REGION_NAME = env("AWS_REGION_NAME")
 AWS_SES_SENDER = env("AWS_SES_SENDER")
 
+
+
 LOGIN_URL = "/auth/login/"
 
-MEDIA_URL = "/media/"
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+# File Storage configuration
+USE_S3 = env("SUPABASE_AWS_ACCESS_KEY_ID", default=None) is not None
+
+if USE_S3:
+    AWS_ACCESS_KEY_ID = env("SUPABASE_AWS_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY = env("SUPABASE_AWS_SECRET_ACCESS_KEY")
+    AWS_STORAGE_BUCKET_NAME = env("SUPABASE_AWS_STORAGE_BUCKET_NAME")
+    AWS_S3_ENDPOINT_URL = env("SUPABASE_AWS_S3_ENDPOINT_URL")
+    AWS_S3_REGION_NAME = env("SUPABASE_AWS_S3_REGION_NAME", default="ap-southeast-1")
+    
+    # Important settings for Supabase S3 compatibility
+    AWS_S3_ADDRESSING_STYLE = "path"
+    AWS_S3_SIGNATURE_VERSION = "s3v4"
+    AWS_S3_FILE_OVERWRITE = False
+    
+    # Serve files using S3
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+else:
+    # Fallback to local files if S3 credentials are not set
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
 

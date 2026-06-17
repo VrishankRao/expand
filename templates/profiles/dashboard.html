@@ -26,14 +26,40 @@
         {% endif %}
     }
     body { background-color: var(--bg) !important; color: var(--text) !important; }
+
+    /* ── XPAND live FX layer ── */
+    .fx-aura{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+    .fx-aura i{position:absolute;width:60vmax;height:60vmax;border-radius:50%;filter:blur(110px);opacity:.14;will-change:transform}
+    .fx-aura i:first-child{background:#22c55e;top:-22%;left:-18%;animation:fxd1 24s ease-in-out infinite alternate}
+    .fx-aura i:last-child{background:#0ea5e9;bottom:-28%;right:-18%;opacity:.1;animation:fxd2 30s ease-in-out infinite alternate}
+    @keyframes fxd1{to{transform:translate(14vw,12vh) scale(1.2)}}
+    @keyframes fxd2{to{transform:translate(-12vw,-14vh) scale(1.12)}}
+    .fx-z{position:relative;z-index:1}
+    .fx-in{opacity:0;transform:translateY(16px);animation:fxin .7s cubic-bezier(.22,1,.36,1) var(--d,0s) forwards}
+    @keyframes fxin{to{opacity:1;transform:translateY(0)}}
+    .fx-spot{position:relative}
+    .fx-spot::after{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;transition:opacity .35s;background:radial-gradient(380px circle at var(--mx,50%) var(--my,50%),rgba(34,197,94,.13),transparent 65%);pointer-events:none}
+    .fx-spot:hover::after{opacity:1}
+    .fx-tilt{transform:perspective(700px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .25s ease;will-change:transform}
+    @property --fxa{syntax:'<angle>';initial-value:0deg;inherits:false}
+    .fx-ring::after{content:'';position:absolute;inset:-4px;border-radius:calc(1.5rem + 4px);padding:2px;background:conic-gradient(from var(--fxa,0deg),#22c55e,transparent 30%,transparent 62%,#22c55e);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:fxspin 5s linear infinite;pointer-events:none}
+    @keyframes fxspin{to{--fxa:360deg}}
+    .fx-float{animation:fxfloat 5.5s ease-in-out infinite}
+    @keyframes fxfloat{50%{transform:translateY(-7px)}}
+    @media (prefers-reduced-motion:reduce){.fx-in{animation:none;opacity:1;transform:none}.fx-aura i,.fx-ring::after,.fx-float{animation:none}.fx-tilt{transform:none}}
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="min-h-screen flex flex-col bg-theme-bg text-theme-text font-sans"
-     x-data="{ openAnalytics: false, openEdit: false, mobileNav: false }"
+     x-data="{ openAnalytics: false, openEdit: false, mobileNav: false, openSearch: false, openShareModal: false, copiedShareLink: false, showQrCode: false, openInsights: false }"
      @close-analytics.window="openAnalytics = false"
-     @close-edit-modal.window="openEdit = false">
+     @close-edit-modal.window="openEdit = false"
+     @close-search-modal.window="openSearch = false"
+     @close-share-modal.window="openShareModal = false"
+     @close-insights.window="openInsights = false">
+
+    <div class="fx-aura" aria-hidden="true"><i></i><i></i></div>
 
     <!-- ═══ TOP NAV ═══ -->
     <header class="sticky top-0 z-40 border-b border-theme-border bg-theme-card/90 glass">
@@ -58,15 +84,38 @@
                     </svg>
                     xpand.so/{{ profile.handle }}
                 </a>
+
+                <!-- Share button -->
+                <div class="relative">
+                    <button
+                        id="share-profile-btn"
+                        @click="openShareModal = true"
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-500/10 border border-brand-500/20 text-brand-400 text-[11px] font-semibold hover:bg-brand-500/15 active:scale-95 transition-all"
+                        title="Share your profile">
+                        <!-- Share icon -->
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                        </svg>
+                        <span>Share</span>
+                    </button>
+                </div>
             </div>
 
             <!-- Right: user info + logout -->
             <div class="flex items-center gap-3">
+                <button @click="openSearch = true"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-theme-border rounded-lg text-xs font-semibold bg-theme-btn-bg text-theme-text hover:bg-theme-hover">
+                    <svg class="w-3.5 h-3.5 text-theme-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
+                    </svg>
+                    <span>Search Handle</span>
+                </button>
                 <div class="hidden md:block text-right">
                     <p class="text-[10px] text-theme-muted uppercase tracking-widest font-semibold">Logged in as</p>
                     <p class="text-xs font-bold text-theme-text">{{ request.user.phone_number }}</p>
                 </div>
-                <form action="{% url 'authentication:logout' %}" method="post">
+
+                <form action="{% url 'authentication:logout' %}" method="post" onsubmit="try { Object.keys(localStorage).forEach(key => { if(key.startsWith('clicked_link_')) localStorage.removeItem(key); }); } catch(e) {}">
                     {% csrf_token %}
                     <button type="submit"
                         class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-theme-border rounded-lg text-xs font-semibold bg-theme-btn-bg text-theme-text hover:bg-theme-hover">
@@ -82,13 +131,13 @@
     </header>
 
     <!-- ═══ MAIN CONTENT ═══ -->
-    <main class="flex-grow max-w-[1480px] w-full mx-auto p-5 space-y-5">
+    <main class="flex-grow max-w-[1480px] w-full mx-auto p-5 space-y-5 fx-z">
 
         <!-- ── ROW 1: Profile Settings + CTAs ── -->
         <div class="grid grid-cols-1 xl:grid-cols-[380px_1fr] gap-5">
 
             <!-- ╔══ Profile Settings Card ══╗ -->
-            <div class="border border-theme-border rounded-2xl bg-theme-card shadow-sm overflow-hidden">
+            <div class="fx-spot fx-in border border-theme-border rounded-2xl bg-theme-card shadow-sm overflow-hidden">
                 <!-- Card header -->
                 <div class="px-5 pt-5 pb-4 border-b border-theme-border">
                     <div class="flex items-center justify-between">
@@ -203,17 +252,30 @@
             </div>
 
             <!-- ╔══ WhatsApp CTAs Card ══╗ -->
-            <div class="border border-theme-border rounded-2xl bg-theme-card shadow-sm overflow-hidden flex flex-col">
+            <div class="fx-spot fx-in border border-theme-border rounded-2xl bg-theme-card shadow-sm overflow-hidden flex flex-col" style="--d:.08s">
                 <!-- Card header -->
                 <div class="px-5 pt-5 pb-4 border-b border-theme-border flex items-center justify-between">
                     <div>
-                        <h2 class="text-sm font-bold text-theme-text">WhatsApp CTAs</h2>
-                        <p class="text-[11px] text-theme-muted mt-0.5">Add up to 5 active links · URLs auto-classify</p>
+                        <div class="flex items-center gap-3">
+                            <h2 class="text-sm font-bold text-theme-text">WhatsApp CTAs</h2>
+                            <button 
+                                hx-get="{% url 'profiles:link_insights' %}"
+                                hx-target="#insights-modal-container"
+                                hx-swap="innerHTML"
+                                @click="openInsights = true"
+                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-brand-500/20 bg-brand-500/5 text-brand-400 text-[10px] font-bold uppercase tracking-wider hover:bg-brand-500/10 active:scale-95 transition-all">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364.364l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                                </svg>
+                                <span>Insights</span>
+                            </button>
+                        </div>
+                        <p class="text-[11px] text-theme-muted mt-0.5">Add up to 10 active links · URLs auto-classify</p>
                     </div>
                     <!-- Link count badge -->
-                    <div class="flex items-center gap-1 text-[11px] font-bold text-theme-muted">
+                    <div class="flex items-center gap-1 text-[11px] font-bold text-theme-muted" id="link-count-badge">
                         <span class="text-brand-400">{{ links|length }}</span>
-                        <span>/ 5</span>
+                        <span>/ 10</span>
                     </div>
                 </div>
 
@@ -266,7 +328,7 @@
         </div>
 
         <!-- ── ROW 2: Lead Notifications ── -->
-        <div class="border border-theme-border rounded-2xl bg-theme-card shadow-sm overflow-hidden">
+        <div class="fx-spot fx-in border border-theme-border rounded-2xl bg-theme-card shadow-sm overflow-hidden" style="--d:.16s">
             <div class="px-5 pt-5 pb-4 border-b border-theme-border">
                 <div class="flex items-center gap-2">
                     <div class="w-7 h-7 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center">
@@ -303,7 +365,7 @@
         </div>
 
         <!-- ── ROW 3: Leads Inbox ── -->
-        <div class="border border-theme-border rounded-2xl bg-theme-card shadow-sm overflow-hidden">
+        <div class="fx-spot fx-in border border-theme-border rounded-2xl bg-theme-card shadow-sm overflow-hidden" style="--d:.24s">
             <!-- Header -->
             <div class="px-5 pt-5 pb-4 border-b border-theme-border flex items-center justify-between gap-4">
                 <div class="flex items-center gap-2">
@@ -315,7 +377,7 @@
                     <div>
                         <h2 class="text-sm font-bold text-theme-text">Leads Inbox</h2>
                         <p class="text-[11px] text-theme-muted">
-                            <span class="text-brand-400 font-bold">{{ leads|length }}</span> lead{{ leads|length|pluralize }} captured
+                            <span class="text-brand-400 font-bold" data-countup>{{ leads_count }}</span> unique lead{{ leads_count|pluralize }} captured
                         </p>
                     </div>
                 </div>
@@ -329,33 +391,72 @@
             </div>
 
             <!-- Search & filter -->
-            <div class="px-5 py-3.5 border-b border-theme-border bg-theme-surface flex flex-col sm:flex-row gap-2.5">
-                <div class="relative flex-grow">
+            <div class="px-5 py-3.5 border-b border-theme-border bg-theme-surface flex flex-col gap-3">
+                <div class="relative w-full">
                     <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
                     </svg>
-                    <input type="text" name="search" placeholder="Search by name, email, phone…"
+                    <input type="text" name="search" placeholder="Search by name, email, phone, message…"
                         hx-get="{% url 'leads:search_leads' %}" hx-trigger="keyup changed delay:300ms" hx-target="#leads-table"
+                        hx-include="[name='search'], [name='link_filter'], [name='status_filter'], [name='surface_filter'], [name='date_filter'], [name='read_filter']"
                         class="w-full pl-10 pr-4 py-2.5 bg-theme-input border border-theme-input-border rounded-xl text-sm text-theme-input-text placeholder-theme-placeholder">
                 </div>
-                <select name="link_filter" hx-get="{% url 'leads:search_leads' %}" hx-trigger="change" hx-target="#leads-table"
-                    class="bg-theme-input border border-theme-input-border rounded-xl px-3.5 py-2.5 text-sm text-theme-input-text w-full sm:w-48">
-                    <option value="">All CTA Buttons</option>
-                    {% for l in links %}
-                    <option value="{{ l.id }}">{{ l.label }}</option>
-                    {% endfor %}
-                </select>
+                <div class="grid grid-cols-2 md:flex md:flex-wrap items-center gap-2.5">
+                    <select name="link_filter" hx-get="{% url 'leads:search_leads' %}" hx-trigger="change" hx-target="#leads-table"
+                        hx-include="[name='search'], [name='link_filter'], [name='status_filter'], [name='surface_filter'], [name='date_filter'], [name='read_filter']"
+                        class="bg-theme-input border border-theme-input-border rounded-xl px-3.5 py-2.5 text-sm text-theme-input-text w-full md:w-48">
+                        <option value="">All Source Links</option>
+                        {% for l in links %}
+                        <option value="{{ l.id }}">{{ l.label }}</option>
+                        {% endfor %}
+                    </select>
+                    
+                    <select name="surface_filter" hx-get="{% url 'leads:search_leads' %}" hx-trigger="change" hx-target="#leads-table"
+                        hx-include="[name='search'], [name='link_filter'], [name='status_filter'], [name='surface_filter'], [name='date_filter'], [name='read_filter']"
+                        class="bg-theme-input border border-theme-input-border rounded-xl px-3.5 py-2.5 text-sm text-theme-input-text w-full md:w-40">
+                        <option value="">All Surfaces</option>
+                        <option value="group">Group</option>
+                        <option value="community">Community</option>
+                        <option value="channel">Channel</option>
+                    </select>
+
+                    <select name="date_filter" hx-get="{% url 'leads:search_leads' %}" hx-trigger="change" hx-target="#leads-table"
+                        hx-include="[name='search'], [name='link_filter'], [name='status_filter'], [name='surface_filter'], [name='date_filter'], [name='read_filter']"
+                        class="bg-theme-input border border-theme-input-border rounded-xl px-3.5 py-2.5 text-sm text-theme-input-text w-full md:w-36">
+                        <option value="">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="yesterday">Yesterday</option>
+                        <option value="7days">Last 7 Days</option>
+                        <option value="30days">Last 30 Days</option>
+                    </select>
+
+                    <select name="read_filter" hx-get="{% url 'leads:search_leads' %}" hx-trigger="change" hx-target="#leads-table"
+                        hx-include="[name='search'], [name='link_filter'], [name='status_filter'], [name='surface_filter'], [name='date_filter'], [name='read_filter']"
+                        class="bg-theme-input border border-theme-input-border rounded-xl px-3.5 py-2.5 text-sm text-theme-input-text w-full md:w-36">
+                        <option value="">All Statuses</option>
+                        <option value="read">Read</option>
+                        <option value="unread">Unread</option>
+                    </select>
+
+                    <select name="status_filter" hx-get="{% url 'leads:search_leads' %}" hx-trigger="change" hx-target="#leads-table"
+                        hx-include="[name='search'], [name='link_filter'], [name='status_filter'], [name='surface_filter'], [name='date_filter'], [name='read_filter']"
+                        class="bg-theme-input border border-theme-input-border rounded-xl px-3.5 py-2.5 text-sm text-theme-input-text w-full md:w-40 col-span-2 md:col-span-1">
+                        <option value="active">Active (Inbox)</option>
+                        <option value="archived">Archived</option>
+                    </select>
+                </div>
             </div>
 
             <!-- Table -->
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto max-h-[395px] overflow-y-auto relative">
                 <table class="min-w-full text-xs">
-                    <thead>
+                    <thead class="sticky top-0 bg-theme-surface z-10 shadow-[0_1px_0_0_var(--border)]">
                         <tr class="border-b border-theme-border bg-theme-surface">
                             <th class="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-theme-muted">Lead</th>
                             <th class="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-theme-muted">Source CTA</th>
                             <th class="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-theme-muted">Message</th>
                             <th class="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-theme-muted">Date</th>
+                            <th class="px-5 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-theme-muted">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-theme-border" id="leads-table">
@@ -392,6 +493,31 @@
         </div>
     </div>
 
+    <!-- ═══ INSIGHTS MODAL ═══ -->
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 glass"
+         x-show="openInsights" x-cloak x-transition.opacity>
+
+        <div class="max-w-lg w-full max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl border bg-theme-card border-theme-border relative"
+             @click.away="openInsights = false"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 translate-y-2"
+             x-transition:enter-end="opacity-100 translate-y-0">
+
+            <button @click="openInsights = false"
+                class="absolute top-4 right-4 w-8 h-8 rounded-xl bg-theme-surface border border-theme-border flex items-center justify-center hover:bg-theme-hover text-theme-muted z-10">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+
+            <div id="insights-modal-container" class="p-6 text-theme-text">
+                <div class="flex items-center justify-center py-12">
+                    <div class="w-5 h-5 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ═══ EDIT MODAL ═══ -->
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 glass"
          x-show="openEdit" x-cloak x-transition.opacity>
@@ -417,7 +543,277 @@
         </div>
     </div>
 
+    <!-- ═══ SEARCH MODAL ═══ -->
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 glass"
+         x-show="openSearch" x-cloak x-transition.opacity
+         @keydown.escape.window="openSearch = false">
+
+        <div class="max-w-md w-full rounded-2xl shadow-2xl border bg-theme-card border-theme-border relative overflow-hidden"
+             @click.away="openSearch = false"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 translate-y-2"
+             x-transition:enter-end="opacity-100 translate-y-0">
+
+            <!-- Modal Header -->
+            <div class="px-5 pt-5 pb-3 border-b border-theme-border">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center">
+                            <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
+                            </svg>
+                        </div>
+                        <h2 class="text-sm font-bold text-theme-text">Search Profile Handle</h2>
+                    </div>
+                    <button @click="openSearch = false"
+                        class="w-7 h-7 rounded-lg bg-theme-surface border border-theme-border flex items-center justify-center hover:bg-theme-hover text-theme-muted">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Content -->
+            <form hx-post="{% url 'profiles:search_handle' %}" hx-target="#search-error" class="p-5 space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-theme-label mb-1.5">Enter Profile Handle</label>
+                    <div class="relative">
+                        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-theme-muted pointer-events-none">xpand.so/</span>
+                        <input type="text" name="handle" required placeholder="handle" autofocus
+                            class="w-full pl-[72px] pr-4 py-2.5 bg-theme-input border border-theme-input-border rounded-xl text-sm text-theme-input-text placeholder-theme-placeholder">
+                    </div>
+                    <div id="search-error"></div>
+                </div>
+
+                <button type="submit"
+                    class="w-full flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-600 text-white py-2.5 text-sm font-bold rounded-xl shadow-lg shadow-brand-500/15">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
+                    </svg>
+                    Search Profile
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ═══ SHARE MODAL ═══ -->
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 glass"
+         x-show="openShareModal" x-cloak x-transition.opacity
+         @keydown.escape.window="openShareModal = false"
+         x-init="showQrCode = false">
+
+        <div class="max-w-md w-full rounded-2xl shadow-2xl border bg-theme-card border-theme-border relative overflow-hidden flex flex-col"
+             @click.away="openShareModal = false"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 translate-y-2"
+             x-transition:enter-end="opacity-100 translate-y-0">
+
+            <!-- Modal Header -->
+            <div class="px-5 pt-5 pb-3 border-b border-theme-border bg-theme-surface/10">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-brand-500/10 border border-brand-500/20 flex items-center justify-center">
+                            <!-- Share link icon -->
+                            <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                            </svg>
+                        </div>
+                        <h2 class="text-sm font-bold text-theme-text">Share link</h2>
+                    </div>
+                    <button @click="openShareModal = false"
+                        class="w-7 h-7 rounded-lg bg-theme-surface border border-theme-border flex items-center justify-center hover:bg-theme-hover text-theme-muted">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="p-5 space-y-5 overflow-y-auto max-h-[80vh]">
+                <!-- Preview Card -->
+                <div class="p-4 rounded-xl border border-theme-border bg-theme-surface flex items-center justify-between gap-3 relative overflow-hidden group">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-10 h-10 rounded-xl bg-brand-500/15 border border-brand-500/25 flex items-center justify-center flex-shrink-0 text-brand-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                            </svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-xs font-bold text-theme-text leading-tight truncate">
+                                {{ profile.display_name }}'s WhatsApp Profile
+                            </p>
+                            <p class="text-[10px] text-theme-muted font-semibold mt-0.5 truncate select-all">
+                                https://xpand.so/{{ profile.handle }}/
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Card Action Buttons -->
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <!-- QR Code toggle button -->
+                        <button 
+                            @click="showQrCode = !showQrCode"
+                            class="p-1.5 rounded-lg border border-theme-border bg-theme-card text-theme-muted hover:text-theme-text active:scale-95 transition-all"
+                            title="Toggle QR Code">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m0 11v1m4-6h1m-11 0h1m2-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2a2 2 0 012-2z"/>
+                            </svg>
+                        </button>
+                        <!-- Copy link button -->
+                        <button 
+                            @click="
+                                const url = 'https://xpand.so/{{ profile.handle }}/';
+                                navigator.clipboard.writeText(url).then(() => {
+                                    copiedShareLink = true;
+                                    setTimeout(() => copiedShareLink = false, 2000);
+                                });
+                            "
+                            class="p-1.5 rounded-lg border border-theme-border bg-theme-card text-theme-muted hover:text-theme-text active:scale-95 transition-all"
+                            title="Copy link">
+                            <svg x-show="!copiedShareLink" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m-5 4h5m-5 4h5m-5 4h5"/>
+                            </svg>
+                            <svg x-show="copiedShareLink" class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- QR Code Display -->
+                <div x-show="showQrCode" x-cloak x-transition.opacity class="flex flex-col items-center justify-center p-5 rounded-xl border border-theme-border bg-theme-surface/40 space-y-2">
+                    <div class="bg-white p-3 rounded-xl shadow-inner border border-theme-border">
+                        <img :src="'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent('https://xpand.so/{{ profile.handle }}/')" 
+                             alt="QR Code" 
+                             class="w-36 h-36 object-contain">
+                    </div>
+                    <p class="text-[10px] text-theme-muted font-bold tracking-wide uppercase">Scan to view profile</p>
+                </div>
+
+                <!-- Share options section -->
+                <div class="space-y-2.5">
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-theme-label">Share using</p>
+                    
+                    <div class="grid grid-cols-4 gap-3">
+                        <!-- WhatsApp -->
+                        <a href="https://api.whatsapp.com/send?text={{ profile.display_name }}'s%20WhatsApp%20Profile%20%C2%B7%20Powered%20by%20XPAND%20https://xpand.so/{{ profile.handle }}/"
+                           target="_blank"
+                           class="flex flex-col items-center justify-center p-3 rounded-xl border border-theme-border bg-theme-surface hover:bg-theme-hover active:scale-95 transition-all text-center group">
+                            <div class="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                                </svg>
+                            </div>
+                            <span class="text-[10px] font-semibold text-theme-text">WhatsApp</span>
+                        </a>
+
+                        <!-- Twitter / X -->
+                        <a href="https://twitter.com/intent/tweet?text={{ profile.display_name }}'s%20WhatsApp%20Profile%20%C2%B7%20Powered%20by%20XPAND&url=https://xpand.so/{{ profile.handle }}/"
+                           target="_blank"
+                           class="flex flex-col items-center justify-center p-3 rounded-xl border border-theme-border bg-theme-surface hover:bg-theme-hover active:scale-95 transition-all text-center group">
+                            <div class="w-10 h-10 rounded-full bg-slate-500/10 text-theme-text flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                                </svg>
+                            </div>
+                            <span class="text-[10px] font-semibold text-theme-text">Twitter</span>
+                        </a>
+
+                        <!-- LinkedIn -->
+                        <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://xpand.so/{{ profile.handle }}/"
+                           target="_blank"
+                           class="flex flex-col items-center justify-center p-3 rounded-xl border border-theme-border bg-theme-surface hover:bg-theme-hover active:scale-95 transition-all text-center group">
+                            <div class="w-10 h-10 rounded-full bg-blue-600/10 text-blue-600 flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                                </svg>
+                            </div>
+                            <span class="text-[10px] font-semibold text-theme-text">LinkedIn</span>
+                        </a>
+
+                        <!-- Facebook -->
+                        <a href="https://www.facebook.com/sharer/sharer.php?u=https://xpand.so/{{ profile.handle }}/"
+                           target="_blank"
+                           class="flex flex-col items-center justify-center p-3 rounded-xl border border-theme-border bg-theme-surface hover:bg-theme-hover active:scale-95 transition-all text-center group">
+                            <div class="w-10 h-10 rounded-full bg-[#1877f2]/10 text-[#1877f2] flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                                </svg>
+                            </div>
+                            <span class="text-[10px] font-semibold text-theme-text">Facebook</span>
+                        </a>
+
+                        <!-- Telegram -->
+                        <a href="https://t.me/share/url?url=https://xpand.so/{{ profile.handle }}/&text={{ profile.display_name }}'s%20WhatsApp%20Profile%20%C2%B7%20Powered%20by%20XPAND"
+                           target="_blank"
+                           class="flex flex-col items-center justify-center p-3 rounded-xl border border-theme-border bg-theme-surface hover:bg-theme-hover active:scale-95 transition-all text-center group">
+                            <div class="w-10 h-10 rounded-full bg-[#0088cc]/10 text-[#0088cc] flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
+                                <svg class="w-4 h-4 mr-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.87 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.458c.538-.196 1.006.128.832.941z"/>
+                                </svg>
+                            </div>
+                            <span class="text-[10px] font-semibold text-theme-text">Telegram</span>
+                        </a>
+
+                        <!-- Gmail -->
+                        <a href="https://mail.google.com/mail/?view=cm&fs=1&tf=1&to=&su={{ profile.display_name }}'s%20WhatsApp%20Profile%20%C2%B7%20Powered%20by%20XPAND&body=Check%20out%20{{ profile.display_name }}'s%20WhatsApp%20Profile%3A%20https%3A%2F%2Fxpand.so%2F{{ profile.handle }}%2F"
+                           target="_blank"
+                           class="flex flex-col items-center justify-center p-3 rounded-xl border border-theme-border bg-theme-surface hover:bg-theme-hover active:scale-95 transition-all text-center group">
+                            <div class="w-10 h-10 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L12 9.573l8.073-6.08c1.618-1.214 3.927-.059 3.927 1.964z"/>
+                                </svg>
+                            </div>
+                            <span class="text-[10px] font-semibold text-theme-text">Gmail</span>
+                        </a>
+
+                        <!-- Default Mail -->
+                        <a href="mailto:?subject={{ profile.display_name }}'s%20WhatsApp%20Profile%20%C2%B7%20Powered%20by%20XPAND&body=Check%20out%20{{ profile.display_name }}'s%20WhatsApp%20Profile%3A%20https%3A%2F%2Fxpand.so%2F{{ profile.handle }}%2F"
+                           class="flex flex-col items-center justify-center p-3 rounded-xl border border-theme-border bg-theme-surface hover:bg-theme-hover active:scale-95 transition-all text-center group">
+                            <div class="w-10 h-10 rounded-full bg-brand-500/10 text-brand-400 flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
+                                <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                </svg>
+                            </div>
+                            <span class="text-[10px] font-semibold text-theme-text">Email</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Fallback System Share Button -->
+                <button 
+                    @click="
+                        const url = 'https://xpand.so/{{ profile.handle }}/';
+                        const title = '{{ profile.display_name }}\'s WhatsApp Profile · Powered by XPAND';
+                        if (navigator.share) {
+                            navigator.share({ title, url });
+                        } else {
+                            navigator.clipboard.writeText(url).then(() => {
+                                copiedShareLink = true;
+                                setTimeout(() => copiedShareLink = false, 2000);
+                            });
+                        }
+                    "
+                    class="w-full flex items-center justify-center gap-2 border border-theme-border hover:bg-theme-hover text-theme-text py-2.5 text-xs font-bold rounded-xl active:scale-[0.98] transition-all">
+                    <!-- Native share symbol -->
+                    <svg class="w-4 h-4 text-theme-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                    More Sharing Options
+                </button>
+            </div>
+        </div>
+    </div>
+
+            </form>
+        </div>
+    </div>
+
 </div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -427,5 +823,40 @@
             e.detail.elt.reset();
         }
     });
+</script>
+<script>
+(function(){
+    var rm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    /* count-up numbers */
+    if(!rm) document.querySelectorAll('[data-countup]').forEach(function(el){
+        var end = parseInt((el.textContent||'').replace(/\D/g,''), 10);
+        if(!end) return;
+        var t0 = null;
+        el.textContent = '0';
+        requestAnimationFrame(function step(t){
+            t0 = t0 || t;
+            var p = Math.min((t - t0) / 900, 1);
+            el.textContent = Math.round(end * (1 - Math.pow(1 - p, 3)));
+            if(p < 1) requestAnimationFrame(step);
+        });
+    });
+    if(rm || !matchMedia('(pointer:fine)').matches) return;
+    /* cursor spotlight + 3D tilt — delegated, survives HTMX swaps */
+    document.addEventListener('pointermove', function(e){
+        var s = e.target.closest && e.target.closest('.fx-spot');
+        if(s){ var r = s.getBoundingClientRect();
+            s.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+            s.style.setProperty('--my', (e.clientY - r.top) + 'px'); }
+        var t = e.target.closest && e.target.closest('.fx-tilt');
+        if(t){ var b = t.getBoundingClientRect();
+            t.style.setProperty('--ry', ((e.clientX - b.left) / b.width - .5) * 6 + 'deg');
+            t.style.setProperty('--rx', ((e.clientY - b.top) / b.height - .5) * -6 + 'deg'); }
+    }, {passive:true});
+    document.addEventListener('pointerout', function(e){
+        var t = e.target.closest && e.target.closest('.fx-tilt');
+        if(t && !t.contains(e.relatedTarget)){
+            t.style.setProperty('--rx','0deg'); t.style.setProperty('--ry','0deg'); }
+    }, {passive:true});
+})();
 </script>
 {% endblock %}

@@ -77,15 +77,15 @@
             </div>
         </div>
 
-        <!-- Browsers -->
+        <!-- Countries -->
         <div class="bg-theme-surface border border-theme-border rounded-xl p-4 space-y-3">
-            <h4 class="text-[10px] font-bold uppercase tracking-widest text-theme-label">Browsers</h4>
-            <div class="space-y-2.5">
-                {% for browser, count in browsers.items %}
+            <h4 class="text-[10px] font-bold uppercase tracking-widest text-theme-label">Countries</h4>
+            <div class="space-y-2.5 max-h-[160px] overflow-y-auto pr-1">
+                {% for country, count in countries.items %}
                 {% if count > 0 or leads_count == 0 %}
                 <div>
                     <div class="flex justify-between text-[11px] font-semibold mb-1">
-                        <span class="text-theme-text">{{ browser }}</span>
+                        <span class="text-theme-text">{{ country }}</span>
                         <span class="text-theme-muted">{{ count }}</span>
                     </div>
                     <div class="w-full bg-theme-input rounded-full h-1.5 overflow-hidden border border-theme-input-border">
@@ -94,8 +94,11 @@
                     </div>
                 </div>
                 {% endif %}
+                {% empty %}
+                <div class="text-[11px] text-theme-muted py-2 text-center">No countries recorded</div>
                 {% endfor %}
             </div>
         </div>
+
     </div>
 </div>

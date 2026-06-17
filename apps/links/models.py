@@ -66,11 +66,11 @@ class Link(models.Model):
             if Link.objects.filter(profile=self.profile, url=normalized_url).exclude(pk=self.pk).exists():
                 raise ValidationError("This link is already put up by the user.")
         
-        # Enforce free-tier limit: hard cap at 5 active links
+        # Enforce free-tier limit: hard cap at 10 active links
         if self.is_active:
             active_count = Link.objects.filter(profile=self.profile, is_active=True).exclude(pk=self.pk).count()
-            if active_count >= 5:
-                raise ValidationError("You have reached the limit of 5 active links on the free tier.")
+            if active_count >= 10:
+                raise ValidationError("You have reached the limit of 10 active links on the free tier.")
 
     def save(self, *args, **kwargs):
         self.clean()
@@ -89,3 +89,41 @@ class Link(models.Model):
 
     def __str__(self):
         return f"{self.label} ({self.get_surface_type_display()})"
+
+
+class LinkClick(models.Model):
+    link = models.ForeignKey(
+        Link,
+        on_delete=models.CASCADE,
+        related_name="clicks"
+    )
+    phone_number = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        db_index=True
+    )
+    ip_address = models.GenericIPAddressField(
+        blank=True,
+        null=True,
+        db_index=True
+    )
+    visitor_id = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        db_index=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["link", "phone_number"]),
+            models.Index(fields=["link", "ip_address"]),
+            models.Index(fields=["link", "visitor_id"]),
+        ]
+
+
+    def __str__(self):
+        return f"Click on {self.link.label} at {self.created_at}"
+

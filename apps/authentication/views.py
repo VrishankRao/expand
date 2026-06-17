@@ -16,6 +16,11 @@ def login_view(request):
     if request.user.is_authenticated:
         return redirect("profiles:dashboard")
         
+    phone_init = request.GET.get("phone", "")
+    if phone_init.startswith("+91"):
+        phone_init = phone_init[3:]
+    phone_init = re.sub(r"\D", "", phone_init)[:10]
+        
     if request.method == "POST":
         phone_number = clean_phone_number(request.POST.get("phone_number", ""))
         
@@ -27,7 +32,12 @@ def login_view(request):
             
         # Check if user exists
         if not User.objects.filter(phone_number=phone_number).exists():
-            response = HttpResponse('<div class="text-red-400 text-xs mt-2">Phone number not registered. Please sign up.</div>')
+            raw_phone = phone_number.replace("+91", "")
+            response = HttpResponse(
+                f'<div class="text-red-400 text-xs mt-2">'
+                f'Phone number not registered. <a href="/auth/signup/?phone={raw_phone}" class="text-brand-500 font-bold hover:underline">Sign up with this number &rarr;</a>'
+                f'</div>'
+            )
             response["HX-Retarget"] = "#login-error"
             return response
             
@@ -37,7 +47,7 @@ def login_view(request):
         # Render OTP verification segment via HTMX
         return render(request, "authentication/verify_code.html", {"phone_number": phone_number})
         
-    return render(request, "authentication/login.html")
+    return render(request, "authentication/login.html", {"phone_init": phone_init})
 
 def verify_view(request):
     if request.method == "POST":
@@ -70,6 +80,11 @@ def signup_view(request):
     if request.user.is_authenticated:
         return redirect("profiles:dashboard")
         
+    phone_init = request.GET.get("phone", "")
+    if phone_init.startswith("+91"):
+        phone_init = phone_init[3:]
+    phone_init = re.sub(r"\D", "", phone_init)[:10]
+        
     if request.method == "POST":
         phone_number = clean_phone_number(request.POST.get("phone_number", ""))
         
@@ -81,7 +96,12 @@ def signup_view(request):
             
         # Check if user already exists
         if User.objects.filter(phone_number=phone_number).exists():
-            response = HttpResponse('<div class="text-red-400 text-xs mt-2">Phone already registered. Please log in.</div>')
+            raw_phone = phone_number.replace("+91", "")
+            response = HttpResponse(
+                f'<div class="text-red-400 text-xs mt-2">'
+                f'Phone already registered. <a href="/auth/login/?phone={raw_phone}" class="text-brand-500 font-bold hover:underline">Log in with this number &rarr;</a>'
+                f'</div>'
+            )
             response["HX-Retarget"] = "#signup-error"
             return response
             
@@ -90,7 +110,7 @@ def signup_view(request):
         
         return render(request, "authentication/verify_code_signup.html", {"phone_number": phone_number})
         
-    return render(request, "authentication/signup.html")
+    return render(request, "authentication/signup.html", {"phone_init": phone_init})
 
 def signup_verify_view(request):
     if request.method == "POST":
@@ -119,4 +139,5 @@ from django.views.decorators.http import require_POST
 @require_POST
 def logout_view(request):
     logout(request)
-    return redirect("authentication:login")
+    response = redirect("authentication:login")
+    return response

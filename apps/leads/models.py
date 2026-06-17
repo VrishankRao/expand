@@ -9,10 +9,10 @@ class Lead(models.Model):
         message="WhatsApp number must be in the format: '+919999999999'. Up to 15 digits allowed."
     )
 
-    # Maintain relation for active dashboards, set null if the link is deleted
+    # Maintain relation for active dashboards, cascade delete if the link is deleted
     link = models.ForeignKey(
         Link,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
         related_name="leads"
@@ -37,6 +37,10 @@ class Lead(models.Model):
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.TextField(blank=True)
     
+    # Lead Status
+    is_read = models.BooleanField(default=False)
+    is_archived = models.BooleanField(default=False)
+    
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
@@ -52,6 +56,14 @@ class Lead(models.Model):
             self.link_label_snapshot = self.link.label
             self.cta_text_snapshot = self.link.cta_text
         super().save(*args, **kwargs)
+
+    @property
+    def whatsapp_reply_url(self):
+        import urllib.parse
+        clean_number = "".join(c for c in self.whatsapp_number if c.isdigit())
+        msg = f"Hi {self.name}, thank you for reaching out on XPAND! Let's connect."
+        encoded_msg = urllib.parse.quote(msg)
+        return f"https://api.whatsapp.com/send?phone={clean_number}&text={encoded_msg}"
 
     def __str__(self):
         return f"Lead from {self.name} ({self.whatsapp_number})"

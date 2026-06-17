@@ -97,6 +97,13 @@
     {% endfor %}
 </div>
 
+{% if request.headers.hx_request or request.META.HTTP_HX_REQUEST %}
+<div class="flex items-center gap-1 text-[11px] font-bold text-theme-muted" id="link-count-badge" hx-swap-oob="true">
+    <span class="text-brand-400">{{ links|length }}</span>
+    <span>/ 10</span>
+</div>
+{% endif %}
+
 <script>
     (function () {
         const el = document.getElementById('links-list');

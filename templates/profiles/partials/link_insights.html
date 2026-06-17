@@ -1,0 +1,63 @@
+<div class="space-y-5">
+    <!-- Header -->
+    <div class="pr-8">
+        <h3 class="text-base font-bold text-theme-text">Weekly Link Insights</h3>
+        <p class="text-xs text-theme-muted mt-0.5">Based on performance over the last 7 days</p>
+    </div>
+
+    <!-- Content Card -->
+    <div class="bg-theme-surface border border-theme-border rounded-xl p-5 space-y-4">
+        {% if not has_links %}
+        <div class="text-center py-6 space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-theme-card border border-theme-border flex items-center justify-center mx-auto text-theme-muted">
+                <svg class="w-6 h-6 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </div>
+            <div>
+                <h4 class="text-sm font-bold text-theme-text">Add links to view insights</h4>
+                <p class="text-xs text-theme-muted mt-1 max-w-[240px] mx-auto">You have not added any links yet. Add your first WhatsApp CTA button on the dashboard to track conversion performance.</p>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center py-2 space-y-2">
+            <p class="text-xs font-bold uppercase tracking-widest text-brand-400">
+                Most-converting link this week
+            </p>
+            {% if best_link and best_leads > 0 %}
+            <p class="text-lg font-extrabold text-theme-text truncate max-w-xs mx-auto">
+                {{ best_link.label }}
+            </p>
+            <p class="text-xs text-theme-muted truncate max-w-xs mx-auto">
+                {{ best_link.url }}
+            </p>
+            <div class="mt-4 inline-flex flex-col items-center justify-center bg-brand-500/10 border border-brand-500/25 rounded-2xl px-6 py-4">
+                <span class="text-[10px] font-bold uppercase tracking-widest text-brand-400 mb-1">Conversion Ratio</span>
+                <span class="text-3xl font-black text-brand-400">{{ best_cvr }}%</span>
+            </div>
+            {% else %}
+            <p class="text-lg font-extrabold text-theme-muted">
+                None (no conversions recorded)
+            </p>
+            <div class="mt-4 inline-flex flex-col items-center justify-center bg-theme-card/50 border border-theme-border rounded-2xl px-6 py-4">
+                <span class="text-[10px] font-bold uppercase tracking-widest text-theme-muted mb-1">Conversion Ratio</span>
+                <span class="text-3xl font-black text-theme-muted">0.0%</span>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if best_link and best_leads > 0 %}
+        <div class="grid grid-cols-2 gap-3 text-center pt-2 border-t border-theme-border/50">
+            <div class="bg-theme-card/50 border border-theme-border/40 rounded-xl py-3">
+                <span class="block text-[9px] font-semibold uppercase tracking-wider text-theme-muted mb-0.5">7-Day Clicks</span>
+                <span class="text-lg font-bold text-theme-text">{{ best_views }}</span>
+            </div>
+            <div class="bg-theme-card/50 border border-theme-border/40 rounded-xl py-3">
+                <span class="block text-[9px] font-semibold uppercase tracking-wider text-theme-muted mb-0.5">7-Day Leads</span>
+                <span class="text-lg font-bold text-theme-text">{{ best_leads }}</span>
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>

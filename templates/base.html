@@ -191,6 +191,18 @@
         }
     </style>
     {% block extra_head %}{% endblock %}
+    <script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}var u=t.createElement("script");u.type="text/javascript",u.async=!0,u.src=s.api_host+"/static/array.js";var l=t.getElementsByTagName("script")[0];l.parentNode.insertBefore(u,l);var n=e;function r(t){n[t]=function(){n.push([t].concat(Array.prototype.slice.call(arguments,0)))}}var o=["capture","identify","alias","on","once","reset","opt_in_capture","opt_out_capture","has_opted_in_capture","has_opted_out_capture","register","unregister","people"];for(var s=0;s<o.length;s++)r(o[s]);e._i.push([i,s,a])})}(document,window.posthog||[]);
+
+    posthog.init('{{ POSTHOG_API_KEY }}', {
+        api_host: '{{ POSTHOG_HOST }}',
+        autocapture: false
+    });
+
+    {% if request.user.is_authenticated %}
+        posthog.identify('{{ request.user.phone_number }}');
+    {% endif %}
+</script>
 </head>
 
 <body class="h-full flex flex-col font-sans antialiased bg-theme-bg text-theme-text">

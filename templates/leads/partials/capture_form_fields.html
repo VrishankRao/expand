@@ -5,8 +5,25 @@
         <p class="text-xs text-theme-muted mt-1">Quick info to get you on WhatsApp</p>
     </div>
 
-    <form hx-post="{% url 'leads:capture_lead' profile.handle link.id %}" hx-target="#capture-form-container" hx-swap="innerHTML" class="space-y-4">
+    <form hx-post="{% url 'leads:capture_lead' profile.handle link.id %}" hx-target="#capture-form-container" hx-swap="innerHTML" class="space-y-4"
+          x-data="{
+              countryCode: '+91',
+              localPhone: '',
+              init() {
+                  let val = '{{ whatsapp_number|default:'' }}';
+                  if (val) {
+                      let match = val.match(/^(\+[1-9]\d{0,3})(\d+)$/);
+                      if (match) {
+                          this.countryCode = match[1];
+                          this.localPhone = match[2];
+                      } else {
+                          this.localPhone = val;
+                      }
+                  }
+              }
+          }">
         {% csrf_token %}
+
 
         <!-- Honeypot (must stay hidden) -->
         <div class="hidden">
@@ -41,10 +58,169 @@
         </div>
 
         <!-- WhatsApp number -->
+        {% if request.user.is_authenticated %}
+        <!-- Authenticated visitor: show read-only number badge -->
+        <div class="space-y-1.5">
+            <span class="block text-[10px] font-bold uppercase tracking-widest text-theme-label">Your WhatsApp Number</span>
+            <div class="px-4 py-3 bg-brand-500/10 border border-brand-500/20 rounded-xl flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-brand-500" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12.012 2.25c-5.38 0-9.75 4.37-9.75 9.75 0 1.716.444 3.328 1.22 4.737l-1.3 4.743 4.862-1.275A9.704 9.704 0 0 0 12.012 21.75c5.38 0 9.75-4.37 9.75-9.75s-4.37-9.75-9.75-9.75zm.012 17.25c-1.576 0-3.047-.423-4.314-1.16l-.31-.184-2.894.759.773-2.818-.202-.321a7.447 7.447 0 0 1-1.115-3.926c0-4.135 3.365-7.5 7.5-7.5s7.5 3.365 7.5 7.5-3.365 7.5-7.5 7.5zm3.488-5.112c-.191-.096-1.129-.557-1.303-.62-.174-.063-.3-.096-.426.096-.126.191-.49.62-.6.715-.11.096-.22.107-.411.011-.191-.096-.806-.297-1.536-.948-.567-.506-.95-1.13-1.062-1.321-.11-.191-.012-.294.084-.39.087-.085.191-.223.287-.335.096-.11.127-.184.191-.307.064-.123.032-.232-.016-.328-.048-.096-.426-1.026-.583-1.405-.153-.37-.323-.32-.426-.325-.11-.005-.237-.005-.364-.005a.7.7 0 0 0-.506.236c-.174.191-.664.649-.664 1.583 0 .934.68 1.836.775 1.963.095.127 1.339 2.043 3.243 2.864.453.196.806.313 1.082.4.456.145.87.124 1.198.076.365-.054 1.129-.461 1.288-.907.159-.446.159-.828.111-.907-.048-.079-.174-.127-.365-.223z"/>
+                    </svg>
+                    <span class="text-sm font-semibold text-theme-text font-mono">{{ request.user.phone_number }}</span>
+                </div>
+                <span class="text-[9px] font-bold tracking-wider uppercase text-brand-400 bg-brand-500/10 px-2.5 py-1 rounded-lg">Remembered</span>
+            </div>
+        </div>
+        {% else %}
         <div>
             <label for="whatsapp_number" class="block text-[10px] font-bold uppercase tracking-widest text-theme-label mb-1.5">Your WhatsApp Number</label>
-            <input type="tel" name="whatsapp_number" id="whatsapp_number" required placeholder="+919876543210" value="{{ whatsapp_number|default:'' }}"
-                class="w-full px-3.5 py-2.5 bg-theme-input border {% if errors.whatsapp_number %}border-red-500/50{% else %}border-theme-input-border{% endif %} rounded-xl text-sm text-theme-input-text placeholder-theme-placeholder font-mono">
+            <div class="flex gap-2">
+                <!-- Country Code Dropdown -->
+                <select x-model="countryCode"
+                        class="w-[110px] bg-theme-input border {% if errors.whatsapp_number %}border-red-500/50{% else %}border-theme-input-border{% endif %} rounded-xl px-2 py-2.5 text-theme-input-text text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                    <option value="+91">IN (+91)</option>
+                    <option value="+1">US (+1)</option>
+                    <option value="+44">UK (+44)</option>
+                    <option value="+1">CA (+1)</option>
+                    <option value="+61">AU (+61)</option>
+                    <option value="+93">AF (+93)</option>
+                    <option value="+355">AL (+355)</option>
+                    <option value="+213">DZ (+213)</option>
+                    <option value="+376">AD (+376)</option>
+                    <option value="+244">AO (+244)</option>
+                    <option value="+54">AR (+54)</option>
+                    <option value="+374">AM (+374)</option>
+                    <option value="+43">AT (+43)</option>
+                    <option value="+994">AZ (+994)</option>
+                    <option value="+973">BH (+973)</option>
+                    <option value="+880">BD (+880)</option>
+                    <option value="+375">BY (+375)</option>
+                    <option value="+32">BE (+32)</option>
+                    <option value="+975">BT (+975)</option>
+                    <option value="+591">BO (+591)</option>
+                    <option value="+387">BA (+387)</option>
+                    <option value="+267">BW (+267)</option>
+                    <option value="+55">BR (+55)</option>
+                    <option value="+673">BN (+673)</option>
+                    <option value="+359">BG (+359)</option>
+                    <option value="+855">KH (+855)</option>
+                    <option value="+237">CM (+237)</option>
+                    <option value="+56">CL (+56)</option>
+                    <option value="+86">CN (+86)</option>
+                    <option value="+57">CO (+57)</option>
+                    <option value="+506">CR (+506)</option>
+                    <option value="+385">HR (+385)</option>
+                    <option value="+53">CU (+53)</option>
+                    <option value="+357">CY (+357)</option>
+                    <option value="+420">CZ (+420)</option>
+                    <option value="+45">DK (+45)</option>
+                    <option value="+1">DO (+1)</option>
+                    <option value="+593">EC (+593)</option>
+                    <option value="+20">EG (+20)</option>
+                    <option value="+503">SV (+503)</option>
+                    <option value="+372">EE (+372)</option>
+                    <option value="+251">ET (+251)</option>
+                    <option value="+358">FI (+358)</option>
+                    <option value="+33">FR (+33)</option>
+                    <option value="+995">GE (+995)</option>
+                    <option value="+49">DE (+49)</option>
+                    <option value="+233">GH (+233)</option>
+                    <option value="+30">GR (+30)</option>
+                    <option value="+502">GT (+502)</option>
+                    <option value="+504">HN (+504)</option>
+                    <option value="+852">HK (+852)</option>
+                    <option value="+36">HU (+36)</option>
+                    <option value="+354">IS (+354)</option>
+                    <option value="+62">ID (+62)</option>
+                    <option value="+98">IR (+98)</option>
+                    <option value="+964">IQ (+964)</option>
+                    <option value="+353">IE (+353)</option>
+                    <option value="+972">IL (+972)</option>
+                    <option value="+39">IT (+39)</option>
+                    <option value="+1">JM (+1)</option>
+                    <option value="+81">JP (+81)</option>
+                    <option value="+962">JO (+962)</option>
+                    <option value="+7">KZ (+7)</option>
+                    <option value="+254">KE (+254)</option>
+                    <option value="+82">KR (+82)</option>
+                    <option value="+965">KW (+965)</option>
+                    <option value="+996">KG (+996)</option>
+                    <option value="+856">LA (+856)</option>
+                    <option value="+371">LV (+371)</option>
+                    <option value="+961">LB (+961)</option>
+                    <option value="+218">LY (+218)</option>
+                    <option value="+423">LI (+423)</option>
+                    <option value="+370">LT (+370)</option>
+                    <option value="+352">LU (+352)</option>
+                    <option value="+853">MO (+853)</option>
+                    <option value="+389">MK (+389)</option>
+                    <option value="+261">MG (+261)</option>
+                    <option value="+60">MY (+60)</option>
+                    <option value="+960">MV (+960)</option>
+                    <option value="+356">MT (+356)</option>
+                    <option value="+52">MX (+52)</option>
+                    <option value="+373">MD (+373)</option>
+                    <option value="+377">MC (+377)</option>
+                    <option value="+976">MN (+976)</option>
+                    <option value="+382">ME (+382)</option>
+                    <option value="+212">MA (+212)</option>
+                    <option value="+95">MM (+95)</option>
+                    <option value="+977">NP (+977)</option>
+                    <option value="+31">NL (+31)</option>
+                    <option value="+64">NZ (+64)</option>
+                    <option value="+505">NI (+505)</option>
+                    <option value="+234">NG (+234)</option>
+                    <option value="+47">NO (+47)</option>
+                    <option value="+968">OM (+968)</option>
+                    <option value="+92">PK (+92)</option>
+                    <option value="+507">PA (+507)</option>
+                    <option value="+595">PY (+595)</option>
+                    <option value="+51">PE (+51)</option>
+                    <option value="+63">PH (+63)</option>
+                    <option value="+48">PL (+48)</option>
+                    <option value="+351">PT (+351)</option>
+                    <option value="+974">QA (+974)</option>
+                    <option value="+40">RO (+40)</option>
+                    <option value="+7">RU (+7)</option>
+                    <option value="+250">RW (+250)</option>
+                    <option value="+966">SA (+966)</option>
+                    <option value="+221">SN (+221)</option>
+                    <option value="+381">RS (+381)</option>
+                    <option value="+65">SG (+65)</option>
+                    <option value="+421">SK (+421)</option>
+                    <option value="+386">SI (+386)</option>
+                    <option value="+27">ZA (+27)</option>
+                    <option value="+34">ES (+34)</option>
+                    <option value="+94">LK (+94)</option>
+                    <option value="+46">SE (+46)</option>
+                    <option value="+41">CH (+41)</option>
+                    <option value="+886">TW (+886)</option>
+                    <option value="+992">TJ (+992)</option>
+                    <option value="+255">TZ (+255)</option>
+                    <option value="+66">TH (+66)</option>
+                    <option value="+216">TN (+216)</option>
+                    <option value="+90">TR (+90)</option>
+                    <option value="+256">UG (+256)</option>
+                    <option value="+380">UA (+380)</option>
+                    <option value="+971">AE (+971)</option>
+                    <option value="+598">UY (+598)</option>
+                    <option value="+998">UZ (+998)</option>
+                    <option value="+58">VE (+58)</option>
+                    <option value="+84">VN (+84)</option>
+                    <option value="+967">YE (+967)</option>
+                    <option value="+260">ZM (+260)</option>
+                    <option value="+263">ZW (+263)</option>
+                </select>
+                <!-- Local number input -->
+                <input type="tel" id="whatsapp_number" required placeholder="9876543210"
+                    x-model="localPhone"
+                    x-on:input="localPhone = localPhone.replace(/[^0-9]/g, '')"
+                    class="flex-grow px-3.5 py-2.5 bg-theme-input border {% if errors.whatsapp_number %}border-red-500/50{% else %}border-theme-input-border{% endif %} rounded-xl text-sm text-theme-input-text placeholder-theme-placeholder font-mono focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+            </div>
+            <!-- Combined phone hidden input -->
+            <input type="hidden" name="whatsapp_number" x-bind:value="countryCode + localPhone">
+            
             {% if errors.whatsapp_number %}
             <p class="text-red-400 text-[11px] mt-1.5 flex items-center gap-1">
                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8"/></svg>
@@ -52,6 +228,8 @@
             </p>
             {% endif %}
         </div>
+        {% endif %}
+
 
         <!-- Message (optional) -->
         <div>
@@ -59,6 +237,28 @@
             <textarea name="message" id="message" rows="3" placeholder="Hi! I want to ask about…"
                 class="w-full px-3.5 py-2.5 bg-theme-input border border-theme-input-border rounded-xl text-sm text-theme-input-text placeholder-theme-placeholder resize-none">{{ message|default:'' }}</textarea>
         </div>
+
+        <!-- Rate limit or security errors -->
+        {% if errors.rate_limit %}
+        <div class="text-red-400 text-xs text-center flex items-center justify-center gap-1.5 bg-red-500/10 border border-red-500/20 p-2.5 rounded-xl">
+            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+            <span>{{ errors.rate_limit }}</span>
+        </div>
+        {% endif %}
+        {% if errors.turnstile %}
+        <div class="text-red-400 text-xs text-center flex items-center justify-center gap-1.5 bg-red-500/10 border border-red-500/20 p-2.5 rounded-xl">
+            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+            <span>{{ errors.turnstile }}</span>
+        </div>
+        {% endif %}
+
+        <!-- Cloudflare Turnstile Widget -->
+        <div class="cf-turnstile flex justify-center mt-2" data-sitekey="1x00000000000000000000AA"></div>
+        <script>
+            if (window.turnstile) {
+                window.turnstile.implicitRender();
+            }
+        </script>
 
         <button type="submit"
             class="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold shadow-lg shadow-brand-500/25 hover:-translate-y-0.5 active:translate-y-0 transition-all">
