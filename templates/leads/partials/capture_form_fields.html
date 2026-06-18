@@ -9,6 +9,13 @@
           x-data="{
               countryCode: '+91',
               localPhone: '',
+              otpSent: false,
+              otpVerified: false,
+              otpCode: '',
+              otpError: '',
+              sendingOtp: false,
+              verifyingOtp: false,
+              isLoggedIn: {% if request.user.is_authenticated %}true{% else %}false{% endif %},
               init() {
                   let val = '{{ whatsapp_number|default:'' }}';
                   if (val) {
@@ -19,6 +26,61 @@
                       } else {
                           this.localPhone = val;
                       }
+                  }
+              },
+              async sendOtp() {
+                  if (!this.localPhone) return;
+                  this.sendingOtp = true;
+                  this.otpError = '';
+                  try {
+                      let res = await fetch('/leads/otp/send/', {
+                          method: 'POST',
+                          headers: {
+                              'Content-Type': 'application/x-www-form-urlencoded',
+                              'X-CSRFToken': '{{ csrf_token }}'
+                          },
+                          body: new URLSearchParams({
+                              'phone_number': this.countryCode + this.localPhone
+                          })
+                      });
+                      let data = await res.json();
+                      if (res.ok && data.status === 'success') {
+                          this.otpSent = true;
+                      } else {
+                          this.otpError = data.message || 'Failed to send OTP.';
+                      }
+                  } catch (e) {
+                      this.otpError = 'Failed to send OTP.';
+                  } finally {
+                      this.sendingOtp = false;
+                  }
+              },
+              async verifyOtp() {
+                  if (!this.otpCode) return;
+                  this.verifyingOtp = true;
+                  this.otpError = '';
+                  try {
+                      let res = await fetch('/leads/otp/verify/', {
+                          method: 'POST',
+                          headers: {
+                              'Content-Type': 'application/x-www-form-urlencoded',
+                              'X-CSRFToken': '{{ csrf_token }}'
+                          },
+                          body: new URLSearchParams({
+                              'phone_number': this.countryCode + this.localPhone,
+                              'otp': this.otpCode
+                          })
+                      });
+                      let data = await res.json();
+                      if (res.ok && data.status === 'success') {
+                          this.otpVerified = true;
+                      } else {
+                          this.otpError = data.message || 'Incorrect verification code.';
+                      }
+                  } catch (e) {
+                      this.otpError = 'Verification failed.';
+                  } finally {
+                      this.verifyingOtp = false;
                   }
               }
           }">
@@ -77,8 +139,8 @@
             <label for="whatsapp_number" class="block text-[10px] font-bold uppercase tracking-widest text-theme-label mb-1.5">Your WhatsApp Number</label>
             <div class="flex gap-2">
                 <!-- Country Code Dropdown -->
-                <select x-model="countryCode"
-                        class="w-[110px] bg-theme-input border {% if errors.whatsapp_number %}border-red-500/50{% else %}border-theme-input-border{% endif %} rounded-xl px-2 py-2.5 text-theme-input-text text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                <select x-model="countryCode" :disabled="otpSent || otpVerified"
+                        class="w-[110px] bg-theme-input border {% if errors.whatsapp_number %}border-red-500/50{% else %}border-theme-input-border{% endif %} rounded-xl px-2 py-2.5 text-theme-input-text text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/30 disabled:opacity-75 disabled:cursor-not-allowed">
                     <option value="+91">IN (+91)</option>
                     <option value="+1">US (+1)</option>
                     <option value="+44">UK (+44)</option>
@@ -215,12 +277,56 @@
                 <!-- Local number input -->
                 <input type="tel" id="whatsapp_number" required placeholder="9876543210"
                     x-model="localPhone"
+                    :disabled="otpSent || otpVerified"
                     x-on:input="localPhone = localPhone.replace(/[^0-9]/g, '')"
-                    class="flex-grow px-3.5 py-2.5 bg-theme-input border {% if errors.whatsapp_number %}border-red-500/50{% else %}border-theme-input-border{% endif %} rounded-xl text-sm text-theme-input-text placeholder-theme-placeholder font-mono focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                    class="flex-grow px-3.5 py-2.5 bg-theme-input border {% if errors.whatsapp_number %}border-red-500/50{% else %}border-theme-input-border{% endif %} rounded-xl text-sm text-theme-input-text placeholder-theme-placeholder font-mono focus:outline-none focus:ring-2 focus:ring-brand-500/30 disabled:opacity-75 disabled:cursor-not-allowed">
             </div>
             <!-- Combined phone hidden input -->
             <input type="hidden" name="whatsapp_number" x-bind:value="countryCode + localPhone">
-            
+
+            <!-- Send OTP button -->
+            <div class="mt-2" x-show="!otpSent && !otpVerified">
+                <button type="button" @click="sendOtp" :disabled="sendingOtp || localPhone.length < 5"
+                    class="w-full py-2 px-4 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 text-brand-500 text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span x-show="!sendingOtp">Send Verification Code</span>
+                    <span x-show="sendingOtp">Sending...</span>
+                </button>
+            </div>
+
+            <!-- Edit phone link & OTP entry -->
+            <div class="mt-3 space-y-2.5" x-show="otpSent && !otpVerified" x-cloak>
+                <div class="flex justify-between items-center">
+                    <label for="otp_code" class="block text-[10px] font-bold uppercase tracking-widest text-theme-label">Enter Verification Code</label>
+                    <button type="button" @click="otpSent = false; otpCode = ''; otpError = ''"
+                        class="text-[10px] font-bold text-brand-500 hover:underline uppercase tracking-wider">
+                        Edit phone number
+                    </button>
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" id="otp_code" placeholder="123456" x-model="otpCode" maxlength="6"
+                        class="flex-grow px-3.5 py-2.5 bg-theme-input border border-theme-input-border rounded-xl text-sm text-theme-input-text placeholder-theme-placeholder font-mono text-center tracking-widest focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+                    <button type="button" @click="verifyOtp" :disabled="verifyingOtp || otpCode.length < 6"
+                        class="py-2.5 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span x-show="!verifyingOtp">Verify</span>
+                        <span x-show="verifyingOtp">Checking...</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Success message -->
+            <div class="mt-2.5 p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs rounded-xl flex items-center gap-2" x-show="otpVerified" x-cloak>
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span class="font-medium">WhatsApp number verified successfully.</span>
+            </div>
+
+            <!-- OTP error message -->
+            <div class="text-red-400 text-xs mt-1.5 flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 p-2.5 rounded-xl" x-show="otpError" x-cloak>
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                <span x-text="otpError"></span>
+            </div>
+
             {% if errors.whatsapp_number %}
             <p class="text-red-400 text-[11px] mt-1.5 flex items-center gap-1">
                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8"/></svg>
@@ -261,6 +367,8 @@
         </script>
 
         <button type="submit"
+            :disabled="!isLoggedIn && !otpVerified"
+            :class="(!isLoggedIn && !otpVerified) ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''"
             class="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold shadow-lg shadow-brand-500/25 hover:-translate-y-0.5 active:translate-y-0 transition-all">
             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>

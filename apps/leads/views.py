@@ -114,6 +114,14 @@ def _capture_lead_view_inner(request, handle, link_id):
         if not request.user.is_authenticated:
             if not whatsapp_number or not re.match(r"^\+?[1-9]\d{1,14}$", whatsapp_number):
                 errors["whatsapp_number"] = "Invalid WhatsApp number. Use format: +919999999999."
+            else:
+                session_key = request.session.session_key
+                if not session_key:
+                    errors["whatsapp_number"] = "Please verify your phone number via OTP first."
+                else:
+                    cache_key = f"verified_lead_phone_{session_key}_{whatsapp_number}"
+                    if not cache.get(cache_key):
+                        errors["whatsapp_number"] = "Please verify your phone number via OTP first."
             
         if errors:
             return render(request, "leads/partials/capture_form_fields.html", {
@@ -136,6 +144,10 @@ def _capture_lead_view_inner(request, handle, link_id):
             user_agent=user_agent
         )
         lead.save()
+        
+        if not request.user.is_authenticated and request.session.session_key:
+            cache_key = f"verified_lead_phone_{request.session.session_key}_{whatsapp_number}"
+            cache.delete(cache_key)
         
         # Dispatch emails using AWS SES in background if verified email exists
         if profile.email_verified and profile.verified_email:
@@ -340,3 +352,35 @@ def mark_lead_read_view(request, pk):
             lead.save()
         return render(request, "leads/partials/lead_row.html", {"lead": lead})
     return HttpResponseForbidden()
+
+
+from django.views.decorators.http import require_POST
+from django.http import JsonResponse
+from apps.authentication.services import send_otp_sms, verify_otp_sms
+
+@require_POST
+def send_lead_otp_view(request):
+    phone_number = request.POST.get("phone_number", "").strip()
+    if not phone_number or not re.match(r"^\+?[1-9]\d{1,14}$", phone_number):
+        return JsonResponse({"status": "error", "message": "Invalid WhatsApp number. Use format: +919999999999."}, status=400)
+    
+    send_otp_sms(phone_number)
+    return JsonResponse({"status": "success", "message": "OTP sent successfully."})
+
+@require_POST
+def verify_lead_otp_view(request):
+    phone_number = request.POST.get("phone_number", "").strip()
+    otp = request.POST.get("otp", "").strip()
+    
+    if not phone_number or not otp:
+        return JsonResponse({"status": "error", "message": "Phone number and OTP are required."}, status=400)
+        
+    if verify_otp_sms(phone_number, otp):
+        if not request.session.session_key:
+            request.session.create()
+        session_key = request.session.session_key
+        cache_key = f"verified_lead_phone_{session_key}_{phone_number}"
+        cache.set(cache_key, True, timeout=300)
+        return JsonResponse({"status": "success", "message": "Phone number verified successfully."})
+    else:
+        return JsonResponse({"status": "error", "message": "Incorrect verification code. Please check console logs."}, status=400)
