@@ -153,7 +153,19 @@
     <!-- Profile hero -->
     <div class="max-w-md w-full mx-auto px-4 mt-12 text-center space-y-4 fx-z fx-hero">
 
-        
+        <!-- Avatar -->
+        <div class="relative inline-block mx-auto fx-ring fx-float fx-in" style="--d:calc(var(--boot) + .1s)">
+            <div class="w-24 h-24 rounded-3xl flex items-center justify-center overflow-hidden mx-auto shadow-xl border-2 border-theme-border
+                {% if current_theme == 'light' %}bg-gray-100{% elif current_theme == 'whatsapp-green' %}bg-emerald-900{% else %}bg-slate-800{% endif %}">
+                {% if profile.avatar %}
+                    <img src="{{ profile.avatar.url }}" alt="{{ profile.display_name }}" class="w-full h-full object-cover">
+                {% else %}
+                    <span class="text-4xl font-extrabold text-brand-400">{{ profile.display_name|slice:":1"|upper }}</span>
+                {% endif %}
+            </div>
+            <!-- Green status dot -->
+            
+        </div>
 
         <div class="fx-in" style="--d:calc(var(--boot) + .05s)">
             <h1 class="text-xl font-bold tracking-tight text-theme-text fx-kinetic">{{ profile.display_name }}</h1>
