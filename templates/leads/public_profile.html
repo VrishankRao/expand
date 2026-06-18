@@ -153,24 +153,7 @@
     <!-- Profile hero -->
     <div class="max-w-md w-full mx-auto px-4 mt-12 text-center space-y-4 fx-z fx-hero">
 
-        <!-- Avatar -->
-        <div class="relative inline-block mx-auto fx-ring fx-float fx-in" style="--d:calc(var(--boot) + .1s)">
-            <div class="w-24 h-24 rounded-3xl flex items-center justify-center overflow-hidden mx-auto shadow-xl border-2 border-theme-border
-                {% if current_theme == 'light' %}bg-gray-100{% elif current_theme == 'whatsapp-green' %}bg-emerald-900{% else %}bg-slate-800{% endif %}">
-                {% if profile.avatar %}
-                    <img src="{{ profile.avatar.url }}" alt="{{ profile.display_name }}" class="w-full h-full object-cover">
-                {% else %}
-                    <span class="text-4xl font-extrabold text-brand-400">{{ profile.display_name|slice:":1"|upper }}</span>
-                {% endif %}
-            </div>
-            <!-- Green status dot -->
-            <div class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-brand-500 border-2 border-theme-bg flex items-center justify-center">
-                <svg class="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-                </svg>
-            </div>
-            
-        </div>
+        
 
         <div class="fx-in" style="--d:calc(var(--boot) + .05s)">
             <h1 class="text-xl font-bold tracking-tight text-theme-text fx-kinetic">{{ profile.display_name }}</h1>
