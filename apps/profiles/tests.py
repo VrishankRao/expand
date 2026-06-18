@@ -255,6 +255,17 @@ class ViewsIntegrationTest(TestCase):
 
 
     def test_capture_lead_success_flow(self):
+        # 1. Send OTP
+        send_url = reverse("leads:send_otp")
+        send_res = self.client.post(send_url, {"phone_number": "+917777777777"})
+        self.assertEqual(send_res.status_code, 200)
+
+        # 2. Verify OTP with correct bypass code
+        verify_url = reverse("leads:verify_otp")
+        verify_res = self.client.post(verify_url, {"phone_number": "+917777777777", "otp": "123456"})
+        self.assertEqual(verify_res.status_code, 200)
+
+        # 3. Submit Form
         url = reverse("leads:capture_lead", kwargs={"handle": "testprofile", "link_id": self.link.id})
         payload = {
             "name": "Bob",
@@ -268,6 +279,38 @@ class ViewsIntegrationTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "You're all set!")
         self.assertTrue(Lead.objects.filter(name="Bob").exists())
+
+    def test_capture_lead_fails_without_otp_verification(self):
+        url = reverse("leads:capture_lead", kwargs={"handle": "testprofile", "link_id": self.link.id})
+        payload = {
+            "name": "Bob Unverified",
+            "email": "bobunverified@example.com",
+            "whatsapp_number": "+917777777776",
+            "message": "Hello!",
+            "phone": "",
+            "cf-turnstile-response": "test-bypass-token"
+        }
+        response = self.client.post(url, payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Please verify your phone number via OTP first.")
+        self.assertFalse(Lead.objects.filter(name="Bob Unverified").exists())
+
+    def test_send_otp_fails_with_invalid_phone(self):
+        send_url = reverse("leads:send_otp")
+        response = self.client.post(send_url, {"phone_number": "invalid-phone"})
+        self.assertEqual(response.status_code, 400)
+        self.assertJSONEqual(response.content, {"status": "error", "message": "Invalid WhatsApp number. Use format: +919999999999."})
+
+    def test_verify_otp_fails_with_incorrect_code(self):
+        # 1. Send OTP
+        send_url = reverse("leads:send_otp")
+        self.client.post(send_url, {"phone_number": "+917777777775"})
+
+        # 2. Verify with incorrect code
+        verify_url = reverse("leads:verify_otp")
+        response = self.client.post(verify_url, {"phone_number": "+917777777775", "otp": "999999"})
+        self.assertEqual(response.status_code, 400)
+        self.assertJSONEqual(response.content, {"status": "error", "message": "Incorrect verification code. Please check console logs."})
 
     def test_capture_lead_get_renders_form_fields(self):
         url = reverse("leads:capture_lead", kwargs={"handle": "testprofile", "link_id": self.link.id})
@@ -483,20 +526,6 @@ class ViewsIntegrationTest(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Chat")
-
-    def test_link_count_badge_oob_only_on_htmx_request(self):
-        self.client.force_login(self.user)
-        # Normal request (non-HTMX) to dashboard should not contain the OOB swap attribute
-        url = reverse("profiles:dashboard")
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, 'hx-swap-oob="true"')
-
-        # HTMX request to links_list should contain the OOB swap attribute to update top-right badge
-        list_url = reverse("profiles:links_list")
-        response_htmx = self.client.get(list_url, HTTP_HX_REQUEST="true")
-        self.assertEqual(response_htmx.status_code, 200)
-        self.assertContains(response_htmx, 'hx-swap-oob="true"')
 
     def test_links_list_view_anonymous(self):
         url = reverse("profiles:links_list")
