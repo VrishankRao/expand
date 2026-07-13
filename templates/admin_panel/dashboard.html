@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — XPAND{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex flex-col bg-theme-bg text-theme-text font-sans">
+    <!-- Aura layer -->
+    <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <i class="absolute w-[60vmax] h-[60vmax] rounded-full filter blur-[110px] opacity-[0.08]" style="background:#22c55e; top:-20%; left:-10%;"></i>
+        <i class="absolute w-[60vmax] h-[60vmax] rounded-full filter blur-[110px] opacity-[0.05]" style="background:#0ea5e9; bottom:-20%; right:-10%;"></i>
+    </div>
+
+    <!-- Header -->
+    <header class="sticky top-0 z-40 border-b border-theme-border bg-theme-card/90 glass relative">
+        <div class="max-w-[1480px] mx-auto px-6 py-4 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center shadow shadow-brand-500/30">
+                    <svg class="w-4.5 h-4.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                        <path d="M12 0C5.373 0 0 5.373 0 12c0 2.136.558 4.136 1.535 5.875L0 24l6.296-1.507A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.048-1.395l-.362-.215-3.739.895.928-3.638-.236-.374A9.818 9.818 0 1112 21.818z"/>
+                    </svg>
+                </div>
+                <div>
+                    <span class="font-extrabold text-sm tracking-tight">XPAND Admin</span>
+                    <span class="ml-2 text-xs text-theme-muted font-medium">/ Dashboard</span>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="text-right hidden sm:block">
+                    <p class="text-[9px] text-theme-muted uppercase tracking-wider font-extrabold">Logged in as admin</p>
+                    <p class="text-xs font-bold">{{ request.user.phone_number }}</p>
+                </div>
+                <a href="{% url 'admin_panel:logout' %}"
+                   class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-theme-border rounded-xl text-xs font-bold bg-theme-btn-bg text-theme-text hover:bg-theme-hover">
+                    Sign Out
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-[1480px] w-full mx-auto p-6 space-y-6 relative z-10">
+        
+        <!-- Metrics Section -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Metric 1: Total Users -->
+            <div class="p-6 rounded-2xl bg-theme-card border border-theme-border shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-extrabold uppercase tracking-widest text-theme-muted">Total Registered Users</p>
+                    <h3 class="text-3xl font-extrabold text-theme-text mt-2">{{ total_users }}</h3>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Metric 2: Premium Users -->
+            <div class="p-6 rounded-2xl bg-theme-card border border-theme-border shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-extrabold uppercase tracking-widest text-theme-muted">Premium Users</p>
+                    <h3 class="text-3xl font-extrabold text-amber-500 mt-2">{{ premium_users }}</h3>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Metric 3: Free Users -->
+            <div class="p-6 rounded-2xl bg-theme-card border border-theme-border shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-[10px] font-extrabold uppercase tracking-widest text-theme-muted">Free Tier Users</p>
+                    <h3 class="text-3xl font-extrabold text-emerald-500 mt-2">{{ free_users }}</h3>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+        </section>
+
+        <!-- User Table Section -->
+        <section class="bg-theme-card border border-theme-border rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-6 py-5 border-b border-theme-border flex items-center justify-between bg-theme-surface/30">
+                <h2 class="text-sm font-extrabold text-theme-text uppercase tracking-wider">Registered Profiles</h2>
+                <span class="text-[11px] font-bold text-theme-muted">Sorted by Newest Joined</span>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-xs">
+                    <thead>
+                        <tr class="border-b border-theme-border bg-theme-surface/40 text-theme-muted uppercase tracking-widest text-[9px] font-bold">
+                            <th class="px-6 py-4 text-left">Handle</th>
+                            <th class="px-6 py-4 text-left">Display Name</th>
+                            <th class="px-6 py-4 text-left">Email Address</th>
+                            <th class="px-6 py-4 text-left">Plan Status</th>
+                            <th class="px-6 py-4 text-left">Date Joined</th>
+                            <th class="px-6 py-4 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-theme-border/60">
+                        {% for profile in profiles %}
+                        <tr class="hover:bg-theme-hover/20 transition-colors">
+                            <td class="px-6 py-4 font-bold text-brand-500 whitespace-nowrap">
+                                <a href="{% url 'admin_panel:user_detail' profile.handle %}" class="hover:underline">
+                                    @{{ profile.handle }}
+                                </a>
+                            </td>
+                            <td class="px-6 py-4 text-theme-text whitespace-nowrap font-semibold">
+                                {{ profile.display_name }}
+                            </td>
+                            <td class="px-6 py-4 text-theme-muted whitespace-nowrap">
+                                {{ profile.verified_email|default:"—" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if profile.is_premium %}
+                                <span class="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wide bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                    Premium
+                                </span>
+                                {% else %}
+                                <span class="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wide bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                                    Free
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-theme-muted whitespace-nowrap">
+                                {{ profile.user.date_joined|date:"M d, Y" }}
+                            </td>
+                            <td class="px-6 py-4 text-center whitespace-nowrap">
+                                <button
+                                    onclick="openDeleteModal('{{ profile.handle }}', '{{ profile.display_name }}')"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wide bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 transition-colors">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                    Delete
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center text-theme-muted">
+                                No registered profiles found.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div class="bg-theme-card border border-theme-border rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-sm font-extrabold text-theme-text">Delete Account</h3>
+                <p class="text-xs text-theme-muted mt-0.5">This action cannot be undone.</p>
+            </div>
+        </div>
+        <p class="text-sm text-theme-muted mb-6">
+            You are about to permanently delete <span id="deleteUserName" class="font-bold text-theme-text"></span>'s account along with all their links, leads, and data.
+        </p>
+        <form id="deleteForm" method="POST" action="">
+            {% csrf_token %}
+            <div class="flex gap-3">
+                <button type="button" onclick="closeDeleteModal()"
+                    class="flex-1 px-4 py-2.5 rounded-xl border border-theme-border text-xs font-bold text-theme-muted hover:bg-theme-hover transition-colors">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white text-xs font-extrabold hover:bg-red-600 transition-colors">
+                    Yes, Delete Account
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openDeleteModal(handle, displayName) {
+    document.getElementById('deleteUserName').textContent = displayName;
+    document.getElementById('deleteForm').action = '/xpand-admin/user/' + handle + '/delete/';
+    const modal = document.getElementById('deleteModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+function closeDeleteModal() {
+    const modal = document.getElementById('deleteModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) closeDeleteModal();
+});
+</script>
+{% endblock %}

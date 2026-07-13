@@ -10,7 +10,7 @@ from django.core.cache import cache
 import csv
 import re
 
-def public_profile_view(request, handle):
+def public_profile_view(request, handle, surface_type=None, slug=None):
     # Case-insensitive handle lookup
     profile = get_object_or_404(Profile, handle__iexact=handle.lower())
     
@@ -26,26 +26,52 @@ def public_profile_view(request, handle):
         return render(request, "leads/private_profile.html", {"profile": profile}, status=403)
 
     links = profile.links.filter(is_active=True).order_by("sort_order", "created_at")
-    
-    submitted_link_ids = set()
-    if request.user.is_authenticated:
-        submitted_link_ids = set(
-            Lead.objects.filter(
-                link__profile=profile,
-                whatsapp_number=request.user.phone_number
-            ).values_list('link_id', flat=True)
-        )
+
+    # Read submitted leads cookie if profile is premium
+    submitted_link_ids = []
+    if profile.is_premium:
+        cookie_val = request.COOKIES.get("submitted_leads", "")
+        submitted_link_ids = [int(x) for x in cookie_val.split(",") if x.isdigit()]
+
+    # Match deep-link target
+    pre_open_link_id = None
+    if surface_type and slug:
+        from django.utils.text import slugify
+        for link in links:
+            if link.surface_type == surface_type and slugify(link.label) == slug:
+                # If premium and already submitted, directly redirect to link target
+                if profile.is_premium and link.id in submitted_link_ids:
+                    return redirect(link.url)
+                pre_open_link_id = link.id
+                break
+        if not pre_open_link_id:
+            return redirect("leads:public_profile", handle=profile.handle)
+    elif surface_type:
+        return redirect("leads:public_profile", handle=profile.handle)
 
     return render(request, "leads/public_profile.html", {
         "profile": profile,
         "links": links,
         "is_owner": is_owner,
-        "submitted_link_ids": submitted_link_ids
+        "pre_open_link_id": pre_open_link_id,
+        "submitted_link_ids": submitted_link_ids,
+        "current_theme": profile.theme,
     })
 
 def _capture_lead_view_inner(request, handle, link_id):
     profile = get_object_or_404(Profile, handle__iexact=handle.lower())
     link = get_object_or_404(Link, pk=link_id, profile=profile, is_active=True)
+    
+    # If premium and already submitted, directly redirect to target_url
+    if profile.is_premium:
+        cookie_val = request.COOKIES.get("submitted_leads", "")
+        submitted_ids = [int(x) for x in cookie_val.split(",") if x.isdigit()]
+        if link.id in submitted_ids:
+            if request.method == "POST":
+                return render(request, "leads/partials/capture_success.html", {"target_url": link.url})
+            else:
+                response = HttpResponse('<script>window.location.href = "' + link.url + '";</script>')
+                return response
     
     # Get client metadata details
     x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
@@ -153,7 +179,20 @@ def _capture_lead_view_inner(request, handle, link_id):
         if profile.email_verified and profile.verified_email:
             print(f"--- [AWS SES EMAIL SEND] --- Lead Captured Notification to {profile.verified_email} for lead: {name}")
             
-        return render(request, "leads/partials/capture_success.html", {"target_url": link.url})
+        response = render(request, "leads/partials/capture_success.html", {"target_url": link.url})
+        if profile.is_premium:
+            cookie_val = request.COOKIES.get("submitted_leads", "")
+            submitted_ids = [x for x in cookie_val.split(",") if x.isdigit()]
+            if str(link.id) not in submitted_ids:
+                submitted_ids.append(str(link.id))
+            response.set_cookie(
+                "submitted_leads",
+                ",".join(submitted_ids),
+                max_age=365 * 24 * 60 * 60,
+                httponly=True,
+                samesite="Lax"
+            )
+        return response
         
     # Track form views (clicks) for analytics using database-backed LinkClick
     already_clicked = request.GET.get("already_clicked") == "true"
@@ -196,20 +235,13 @@ def _capture_lead_view_inner(request, handle, link_id):
                     ip_address=ip_address
                 )
 
-    # Check if logged-in visitor already submitted a lead for this link to bypass the form
-    if request.user.is_authenticated:
-        if Lead.objects.filter(link=link, whatsapp_number=request.user.phone_number).exists():
-            return render(request, "leads/partials/capture_success.html", {"target_url": link.url})
-
-
     prefilled_name = ""
     prefilled_email = ""
     if request.user.is_authenticated:
         try:
             visitor_profile = request.user.profile
             prefilled_name = visitor_profile.display_name
-            if visitor_profile.email_verified:
-                prefilled_email = visitor_profile.verified_email or ""
+            prefilled_email = visitor_profile.verified_email or ""
         except Profile.DoesNotExist:
             pass
 

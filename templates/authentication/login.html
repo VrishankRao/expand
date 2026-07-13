@@ -1,13 +1,46 @@
 {% extends "base.html" %}
 {% block title %}Log In — XPAND{% endblock %}
 
-{% block content %}
-<div class="min-h-screen flex items-center justify-center px-4 py-12 relative overflow-hidden">
+{% block extra_head %}
+<style>
+    .fx-spot {
+        position: relative;
+    }
+    .fx-spot::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        opacity: 0;
+        transition: opacity .35s;
+        background: radial-gradient(400px circle at var(--mx, 50%) var(--my, 50%), rgba(34, 197, 94, 0.12), transparent 65%);
+        pointer-events: none;
+        z-index: 1;
+    }
+    .fx-spot:hover::after {
+        opacity: 1;
+    }
+    .fx-tilt {
+        transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        will-change: transform;
+    }
+    .fx-tilt:active {
+        transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) scale(0.99);
+    }
+</style>
+{% endblock %}
 
-    <!-- Background decoration -->
-    <div class="pointer-events-none absolute inset-0 overflow-hidden">
-        <div class="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-brand-500/5 blur-3xl"></div>
-        <div class="absolute -bottom-32 -left-32 w-80 h-80 rounded-full bg-brand-500/5 blur-3xl"></div>
+{% block content %}
+<div class="min-h-screen flex items-center justify-center px-4 py-12 relative overflow-hidden bg-theme-bg">
+
+    <!-- Interactive Canvas Background -->
+    <canvas id="fx-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-0"></canvas>
+
+    <!-- Glowing Aura background (matches public profile design language) -->
+    <div class="pointer-events-none absolute inset-0 overflow-hidden z-0">
+        <i class="absolute w-[60vmax] h-[60vmax] rounded-full filter blur-[110px] opacity-25 bg-brand-500 -top-[20%] -left-[10%] animate-pulse-slow"></i>
+        <i class="absolute w-[60vmax] h-[60vmax] rounded-full filter blur-[110px] opacity-15 bg-indigo-500 -bottom-[20%] -right-[10%]"></i>
     </div>
 
     <div class="relative z-10 w-full max-w-[400px]">
@@ -39,7 +72,7 @@
 
         <!-- Auth container — swapped by HTMX -->
         <div id="auth-container"
-             class="bg-theme-card border border-theme-border rounded-2xl p-6 shadow-xl glow-green space-y-5 animate-fade-in">
+             class="bg-theme-card/75 backdrop-blur-md glass border border-theme-border/60 rounded-2xl p-6 shadow-2xl glow-green space-y-5 animate-fade-in fx-tilt fx-spot">
             <form hx-post="{% url 'authentication:login' %}" hx-target="#auth-container" hx-swap="innerHTML" class="space-y-5"
                   x-data="{ countryCode: '+91', localPhone: '{{ phone_init }}' }">
                 {% csrf_token %}
@@ -215,4 +248,154 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Particle Canvas Animation
+    const canvas = document.getElementById('fx-canvas');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+        
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        const particles = [];
+        const count = 55;
+        const maxDist = 135;
+        
+        let mouse = { x: null, y: null, radius: 150 };
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+        window.addEventListener('mouseleave', () => {
+            mouse.x = null;
+            mouse.y = null;
+        });
+
+        // Helper to query theme colors dynamically in the render loop
+        function getThemeColors() {
+            const htmlClass = document.documentElement.classList;
+            if (htmlClass.contains('theme-light')) {
+                return {
+                    dot: 'rgba(22, 163, 74, 0.45)',     // Green dots
+                    line: 'rgba(22, 163, 74, ',        // Green lines
+                    mouse: 'rgba(14, 165, 233, '       // Blue line to cursor
+                };
+            } else if (htmlClass.contains('theme-whatsapp-green')) {
+                return {
+                    dot: 'rgba(52, 211, 153, 0.65)',    // Emerald green dots
+                    line: 'rgba(52, 211, 153, ',       // Emerald green lines
+                    mouse: 'rgba(56, 189, 248, '       // Cyan line to cursor
+                };
+            } else {
+                return {
+                    dot: 'rgba(34, 197, 94, 0.55)',     // Bright green dots
+                    line: 'rgba(34, 197, 94, ',        // Bright green lines
+                    mouse: 'rgba(14, 165, 233, '       // Blue line to cursor
+                };
+            }
+        }
+
+        for (let i = 0; i < count; i++) {
+            particles.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                vx: (Math.random() - 0.5) * 0.45,
+                vy: (Math.random() - 0.5) * 0.45,
+                r: Math.random() * 2.5 + 1.5 // slightly larger particles
+            });
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            const colors = getThemeColors();
+            
+            for (let i = 0; i < count; i++) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+
+                if (p.x < 0 || p.x > width) p.vx *= -1;
+                if (p.y < 0 || p.y > height) p.vy *= -1;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = colors.dot;
+                ctx.fill();
+
+                for (let j = i + 1; j < count; j++) {
+                    const p2 = particles[j];
+                    const dx = p.x - p2.x;
+                    const dy = p.y - p2.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < maxDist) {
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        // Higher alpha transparency multiplier for much better visibility
+                        const alpha = (1 - dist / maxDist) * 0.16;
+                        ctx.strokeStyle = colors.line + alpha + ')';
+                        ctx.lineWidth = 0.95;
+                        ctx.stroke();
+                    }
+                }
+
+                if (mouse.x !== null) {
+                    const dx = p.x - mouse.x;
+                    const dy = p.y - mouse.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < mouse.radius) {
+                        const force = (mouse.radius - dist) / mouse.radius;
+                        p.x -= dx * force * 0.015;
+                        p.y -= dy * force * 0.015;
+
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(mouse.x, mouse.y);
+                        const alpha = (1 - dist / mouse.radius) * 0.12;
+                        ctx.strokeStyle = colors.mouse + alpha + ')';
+                        ctx.lineWidth = 0.85;
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+        animate();
+    }
+
+    // 2. 3D Tilt + Cursor Spotlight Effect
+    const card = document.querySelector('.fx-tilt');
+    if (card) {
+        document.addEventListener('mousemove', (e) => {
+            const r = card.getBoundingClientRect();
+            card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+            card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+            
+            if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+                const xVal = ((e.clientY - r.top) / r.height - 0.5) * -7;
+                const yVal = ((e.clientX - r.left) / r.width - 0.5) * 7;
+                card.style.setProperty('--rx', xVal + 'deg');
+                card.style.setProperty('--ry', yVal + 'deg');
+            } else {
+                card.style.setProperty('--rx', '0deg');
+                card.style.setProperty('--ry', '0deg');
+            }
+        });
+        
+        document.addEventListener('mouseleave', () => {
+            card.style.setProperty('--rx', '0deg');
+            card.style.setProperty('--ry', '0deg');
+        });
+    }
+});
+</script>
 {% endblock %}

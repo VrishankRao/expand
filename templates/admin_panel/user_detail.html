@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}User Detail @{{ profile.handle }} — XPAND{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex flex-col bg-theme-bg text-theme-text font-sans">
+    <!-- Aura layer -->
+    <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <i class="absolute w-[50vmax] h-[50vmax] rounded-full filter blur-[110px] opacity-[0.07]" style="background:#22c55e; top:-20%; left:-10%;"></i>
+        <i class="absolute w-[50vmax] h-[50vmax] rounded-full filter blur-[110px] opacity-[0.05]" style="background:#0ea5e9; bottom:-20%; right:-10%;"></i>
+    </div>
+
+    <!-- Header -->
+    <header class="sticky top-0 z-40 border-b border-theme-border bg-theme-card/90 glass relative">
+        <div class="max-w-[1200px] mx-auto px-6 py-4 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <a href="{% url 'admin_panel:dashboard' %}" 
+                   class="w-8 h-8 rounded-xl border border-theme-border flex items-center justify-center hover:bg-theme-hover text-theme-muted transition-all"
+                   title="Back to Dashboard">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </a>
+                <div>
+                    <span class="font-extrabold text-sm tracking-tight">User Details</span>
+                    <span class="ml-2 text-xs text-theme-muted font-medium">/ @{{ profile.handle }}</span>
+                </div>
+            </div>
+            
+            {% if profile.is_premium %}
+            <span class="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                Premium Account
+            </span>
+            {% else %}
+            <span class="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wide bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                Free Account
+            </span>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="flex-grow max-w-[1200px] w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 relative z-10">
+        
+        <!-- Left: Profile Info -->
+        <section class="lg:col-span-1 space-y-6">
+            <div class="bg-theme-card border border-theme-border rounded-2xl shadow-sm p-6 flex flex-col items-center text-center">
+                <!-- Avatar -->
+                <div class="w-24 h-24 rounded-2xl overflow-hidden bg-theme-surface border border-theme-border shadow-md mb-4 flex items-center justify-center">
+                    {% if profile.avatar %}
+                    <img src="{{ profile.avatar.url }}" alt="{{ profile.display_name }}" class="w-full h-full object-cover">
+                    {% else %}
+                    <span class="text-3xl font-extrabold text-brand-500">
+                        {{ profile.display_name|slice:":1"|upper }}
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <h2 class="text-xl font-extrabold text-theme-text">{{ profile.display_name }}</h2>
+                <p class="text-sm font-semibold text-brand-500 mt-0.5">@{{ profile.handle }}</p>
+                <p class="text-xs text-theme-muted mt-3 max-w-xs leading-relaxed">
+                    {{ profile.bio|default:"No bio written." }}
+                </p>
+            </div>
+
+            <!-- Stats/Settings Details -->
+            <div class="bg-theme-card border border-theme-border rounded-2xl shadow-sm p-6 space-y-4">
+                <h3 class="text-xs font-extrabold text-theme-text uppercase tracking-widest border-b border-theme-border pb-2">Profile Settings</h3>
+                
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-theme-muted">Registered Phone</span>
+                    <span class="font-bold text-theme-text">{{ profile.user.phone_number }}</span>
+                </div>
+
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-theme-muted">Verified Email</span>
+                    <span class="font-bold text-theme-text">{{ profile.verified_email|default:"None" }}</span>
+                </div>
+
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-theme-muted">Theme Preference</span>
+                    <span class="font-bold text-theme-text capitalize">{{ profile.theme }}</span>
+                </div>
+
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-theme-muted">Public Visibility</span>
+                    <span class="font-bold {% if profile.is_visible %}text-emerald-500{% else %}text-red-500{% endif %}">
+                        {% if profile.is_visible %}Visible{% else %}Hidden{% endif %}
+                    </span>
+                </div>
+
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-theme-muted">Email Verified</span>
+                    <span class="font-bold {% if profile.email_verified %}text-emerald-500{% else %}text-red-500{% endif %}">
+                        {% if profile.email_verified %}Yes{% else %}No{% endif %}
+                    </span>
+                </div>
+
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-theme-muted">Join Date</span>
+                    <span class="font-bold text-theme-text">{{ profile.user.date_joined|date:"M d, Y H:i" }}</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right: Links Dashboard & Leads Statistics -->
+        <section class="lg:col-span-2 space-y-6">
+            <!-- Leads Stat block -->
+            <div class="bg-theme-card border border-theme-border rounded-2xl p-6 shadow-sm flex items-center justify-between">
+                <div>
+                    <h3 class="text-xs font-extrabold text-theme-text uppercase tracking-widest mb-1.5">Captured Leads</h3>
+                    <p class="text-2xl font-extrabold text-theme-text">{{ leads_count }} <span class="text-xs text-theme-muted font-bold">unique lead{{ leads_count|pluralize }}</span></p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-brand-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Links grid -->
+            <div class="bg-theme-card border border-theme-border rounded-2xl p-6 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-theme-border pb-3">
+                    <h3 class="text-xs font-extrabold text-theme-text uppercase tracking-widest">Active CTA Cards ({{ links|length }})</h3>
+                    <span class="text-[10px] text-theme-muted font-bold">Read-Only View</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" x-data="{ openAnalytics: false }">
+                    {% for link in links %}
+                    <div class="relative group p-4 rounded-xl border border-theme-border bg-theme-surface/30 flex flex-col gap-2 h-28 overflow-hidden">
+                        <!-- Header: type badge + status -->
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 font-extrabold text-[9px] uppercase tracking-wider">
+                                {{ link.get_surface_type_display }}
+                            </span>
+                            {% if link.is_active %}
+                            <span class="text-[9px] font-extrabold text-emerald-500 uppercase tracking-widest">Active</span>
+                            {% else %}
+                            <span class="text-[9px] font-extrabold text-theme-muted uppercase tracking-widest">Inactive</span>
+                            {% endif %}
+                        </div>
+                        <h4 class="text-sm font-bold text-theme-text truncate">{{ link.label }}</h4>
+                        <p class="text-[11px] text-theme-muted truncate">{{ link.url }}</p>
+
+                        <!-- Hover overlay: stats icon only -->
+                        <div class="absolute inset-0 bg-black/50 backdrop-blur-[2px] rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                            <button
+                                hx-get="{% url 'admin_panel:link_analytics' link.id %}"
+                                hx-target="#admin-analytics-modal-container"
+                                hx-swap="innerHTML"
+                                @click="openAnalytics = true"
+                                class="flex flex-col items-center gap-1 p-3 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all active:scale-95"
+                                title="View Analytics">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                </svg>
+                                <span class="text-[9px] font-bold uppercase tracking-wide">Stats</span>
+                            </button>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-span-full py-12 text-center text-theme-muted text-xs border border-dashed border-theme-border rounded-xl">
+                        No links/cards added to this profile yet.
+                    </div>
+                    {% endfor %}
+
+                    <!-- Analytics modal -->
+                    <div x-show="openAnalytics"
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-150"
+                         x-transition:leave-start="opacity-100 scale-100"
+                         x-transition:leave-end="opacity-0 scale-95"
+                         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+                         @click.self="openAnalytics = false"
+                         style="display:none;">
+                        <div class="relative bg-theme-card border border-theme-border rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+                            <button @click="openAnalytics = false"
+                                    class="absolute top-4 right-4 w-7 h-7 rounded-full bg-theme-surface border border-theme-border flex items-center justify-center text-theme-muted hover:text-theme-text transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                            <div id="admin-analytics-modal-container">
+                                <div class="flex items-center justify-center py-12">
+                                    <div class="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+</div>
+{% endblock %}

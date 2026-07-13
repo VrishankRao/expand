@@ -1,5 +1,11 @@
+venv/
+.venv/
+mac_env/
 __pycache__/
 *.pyc
+.env
 db.sqlite3
-*.log
-.DS_Store
+media/
+staticfiles/
+node_modules/
+*.sqlite3

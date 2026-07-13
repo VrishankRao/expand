@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en" class="h-full theme-{{ current_theme }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -96,6 +96,7 @@
             --btn-border:       #d1d5db;
             --btn-active:       #0f1117;
             --btn-active-text:  #ffffff;
+            --avatar-bg:        #f3f4f6;
             {% elif current_theme == 'whatsapp-green' %}
             --bg:               #071a12;
             --surface:          #0a2119;
@@ -114,6 +115,7 @@
             --btn-border:       #15573b;
             --btn-active:       #16a34a;
             --btn-active-text:  #ffffff;
+            --avatar-bg:        #064e3b;
             {% else %}
             --bg:               #070d19;
             --surface:          #0c1525;
@@ -132,7 +134,71 @@
             --btn-border:       #1e2d42;
             --btn-active:       #1e2d42;
             --btn-active-text:  #f1f5f9;
+            --avatar-bg:        #1e293b;
             {% endif %}
+        }
+
+        .theme-light {
+            --bg:               #f4f6f9;
+            --surface:          #eef0f4;
+            --card:             #ffffff;
+            --border:           #e2e5ea;
+            --border-subtle:    #edf0f3;
+            --text:             #0f1117;
+            --muted:            #6b7280;
+            --placeholder:      rgba(107,114,128,0.55);
+            --label:            #4b5563;
+            --input:            #f9fafb;
+            --input-border:     #d1d5db;
+            --input-text:       #0f1117;
+            --hover:            #f1f3f6;
+            --btn-bg:           #f3f4f6;
+            --btn-border:       #d1d5db;
+            --btn-active:       #0f1117;
+            --btn-active-text:  #ffffff;
+            --avatar-bg:        #f3f4f6;
+        }
+
+        .theme-whatsapp-green {
+            --bg:               #071a12;
+            --surface:          #0a2119;
+            --card:             #0d2b20;
+            --border:           #134d35;
+            --border-subtle:    #0f3d28;
+            --text:             #ecfdf5;
+            --muted:            #6ee7b7;
+            --placeholder:      rgba(110,231,183,0.45);
+            --label:            #a7f3d0;
+            --input:            #071a12;
+            --input-border:     #15573b;
+            --input-text:       #ecfdf5;
+            --hover:            #0a2a1e;
+            --btn-bg:           #0a2119;
+            --btn-border:       #15573b;
+            --btn-active:       #16a34a;
+            --btn-active-text:  #ffffff;
+            --avatar-bg:        #064e3b;
+        }
+
+        .theme-dark {
+            --bg:               #070d19;
+            --surface:          #0c1525;
+            --card:             #0f1c30;
+            --border:           #1e2d42;
+            --border-subtle:    #162030;
+            --text:             #f1f5f9;
+            --muted:            #64748b;
+            --placeholder:      rgba(100,116,139,0.5);
+            --label:            #94a3b8;
+            --input:            #070d19;
+            --input-border:     #1e2d42;
+            --input-text:       #f1f5f9;
+            --hover:            #132032;
+            --btn-bg:           #0c1525;
+            --btn-border:       #1e2d42;
+            --btn-active:       #1e2d42;
+            --btn-active-text:  #f1f5f9;
+            --avatar-bg:        #1e293b;
         }
 
         body {
@@ -211,30 +277,46 @@
     <!-- Floating Theme Switcher — hidden on dashboard (it has its own) -->
     {% if request.resolver_match.view_name != 'profiles:dashboard' %}
     <div class="fixed bottom-5 right-5 z-50"
-         x-data="{ open: false }"
+         x-data="{ open: false, activeTheme: '{{ current_theme }}' }"
          @click.away="open = false">
 
         <!-- Toggle button -->
         <button @click="open = !open"
             class="w-9 h-9 rounded-full flex items-center justify-center border border-theme-border bg-theme-card shadow-lg hover:scale-110 transition-transform"
             title="Change theme">
-            <svg class="w-4 h-4 text-theme-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="4" stroke-width="2"/>
-                <path stroke-linecap="round" stroke-width="2" d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+            <!-- Sun Icon -->
+            <svg x-show="activeTheme === 'light'" class="w-4 h-4 text-theme-muted" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="4"/>
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+            </svg>
+            <!-- Leaf Icon -->
+            <svg x-show="activeTheme === 'whatsapp-green'" class="w-4 h-4 text-theme-muted" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 3.5 1 9.8a7 7 0 0 1-13.9.2"/>
+                <path d="M9 22v-4"/>
+            </svg>
+            <!-- Moon Icon -->
+            <svg x-show="activeTheme === 'dark'" class="w-4 h-4 text-theme-muted" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
             </svg>
         </button>
 
         <!-- Swatch strip -->
         <div x-show="open" x-cloak x-transition
              class="absolute bottom-11 right-0 flex flex-col gap-2 p-2.5 rounded-2xl border border-theme-border bg-theme-card shadow-xl">
-            <button hx-post="{% url 'profiles:update_theme' %}" hx-vals='{"theme": "light"}' hx-target="body" hx-swap="none"
-                class="w-6 h-6 rounded-full bg-white border border-gray-200 hover:scale-110 {% if current_theme == 'light' %}ring-2 ring-brand-500 ring-offset-1{% endif %}"
+            <button hx-post="{% url 'profiles:update_theme' %}" hx-vals='{"theme": "light"}' hx-swap="none"
+                @click="activeTheme = 'light'; document.documentElement.className = 'h-full theme-light';"
+                class="w-6 h-6 rounded-full bg-white border border-gray-200 hover:scale-110"
+                :class="activeTheme === 'light' ? 'ring-2 ring-brand-500 ring-offset-1' : ''"
                 title="Light"></button>
-            <button hx-post="{% url 'profiles:update_theme' %}" hx-vals='{"theme": "dark"}' hx-target="body" hx-swap="none"
-                class="w-6 h-6 rounded-full bg-[#070d19] border border-slate-700 hover:scale-110 {% if current_theme == 'dark' %}ring-2 ring-brand-500 ring-offset-1 ring-offset-[#070d19]{% endif %}"
+            <button hx-post="{% url 'profiles:update_theme' %}" hx-vals='{"theme": "dark"}' hx-swap="none"
+                @click="activeTheme = 'dark'; document.documentElement.className = 'h-full theme-dark';"
+                class="w-6 h-6 rounded-full bg-[#070d19] border border-slate-700 hover:scale-110"
+                :class="activeTheme === 'dark' ? 'ring-2 ring-brand-500 ring-offset-1 ring-offset-[#070d19]' : ''"
                 title="Dark"></button>
-            <button hx-post="{% url 'profiles:update_theme' %}" hx-vals='{"theme": "whatsapp-green"}' hx-target="body" hx-swap="none"
-                class="w-6 h-6 rounded-full bg-[#071a12] border border-emerald-900 hover:scale-110 {% if current_theme == 'whatsapp-green' %}ring-2 ring-brand-500 ring-offset-1 ring-offset-[#071a12]{% endif %}"
+            <button hx-post="{% url 'profiles:update_theme' %}" hx-vals='{"theme": "whatsapp-green"}' hx-swap="none"
+                @click="activeTheme = 'whatsapp-green'; document.documentElement.className = 'h-full theme-whatsapp-green';"
+                class="w-6 h-6 rounded-full bg-[#071a12] border border-emerald-900 hover:scale-110"
+                :class="activeTheme === 'whatsapp-green' ? 'ring-2 ring-brand-500 ring-offset-1 ring-offset-[#071a12]' : ''"
                 title="Green"></button>
         </div>
     </div>

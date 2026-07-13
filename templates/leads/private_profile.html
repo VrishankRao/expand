@@ -3,15 +3,6 @@
 
 {% block extra_head %}
 <style>
-    {% if current_theme == 'light' %}
-    :root { --bg: #f4f6f9; --surface: #eef0f4; --card: #ffffff; --border: #e2e5ea; --text: #0f1117; --muted: #6b7280; }
-    {% elif current_theme == 'whatsapp-green' %}
-    :root { --bg: #071a12; --surface: #0a2119; --card: #0d2b20; --border: #134d35; --text: #ecfdf5; --muted: #6ee7b7; }
-    {% else %}
-    :root { --bg: #070d19; --surface: #0c1525; --card: #0f1c30; --border: #1e2d42; --text: #f1f5f9; --muted: #64748b; }
-    {% endif %}
-    body { background-color: var(--bg) !important; color: var(--text) !important; }
-
     /* ── XPAND live FX layer ── */
     .fx-aura{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
     .fx-aura i{position:absolute;width:60vmax;height:60vmax;border-radius:50%;filter:blur(110px);opacity:.14;will-change:transform}

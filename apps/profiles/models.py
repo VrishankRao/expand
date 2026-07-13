@@ -52,6 +52,8 @@ class Profile(models.Model):
     # Toggle visibility (forced private until at least 1 active link is added)
     is_visible = models.BooleanField(default=False)
     
+    is_premium = models.BooleanField(default=False)
+    
     # Email verification flow for Lead Notifications via AWS SES
     verified_email = models.EmailField(blank=True, null=True, unique=True)
     email_verified = models.BooleanField(default=False)

@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from .models import Profile
@@ -26,6 +26,20 @@ def dashboard_view(request):
         "links": links,
         "leads": active_leads,
         "leads_count": leads_count,
+    })
+
+@login_required
+def preview_links_grid_view(request):
+    try:
+        profile = request.user.profile
+    except Profile.DoesNotExist:
+        return HttpResponse("Profile not found", status=404)
+        
+    links = profile.links.all().order_by("sort_order", "created_at")
+    return render(request, "profiles/partials/preview_links_grid.html", {
+        "profile": profile,
+        "links": links,
+        "is_oob": False
     })
 
 @login_required
@@ -95,14 +109,19 @@ def update_profile_view(request):
             profile.full_clean()
             profile.save()
             
-            # Send HX-Refresh header to refresh the page and apply the theme instantly on-the-spot
-            response = HttpResponse()
-            response["HX-Refresh"] = "true"
-            return response
+            avatar_url = profile.avatar.url if profile.avatar else ""
+            return JsonResponse({
+                "status": "success",
+                "display_name": profile.display_name,
+                "bio": profile.bio,
+                "avatar_url": avatar_url,
+                "is_visible": profile.is_visible,
+                "warning_msg": warning_msg
+            })
         except ValidationError as e:
             msg = e.messages[0] if isinstance(e.messages, list) else str(e)
             return HttpResponse(
-                f'<div class="text-red-400 text-xs mt-2" id="profile-msg">{msg}</div>',
+                msg,
                 status=400
             )
             
@@ -158,10 +177,14 @@ def add_link_view(request):
         label = request.POST.get("label", "").strip()
         url = request.POST.get("url", "").strip()
         surface_type = request.POST.get("surface_type", "").strip()
+        # Detect whether the caller is HTMX or a plain fetch() (Alpine.js)
+        is_htmx = request.headers.get("HX-Request") == "true"
         
         if not label or not url or not surface_type:
+            if not is_htmx:
+                return JsonResponse({"success": False, "error": "Fill all fields."}, status=400)
             links = profile.links.all().order_by("sort_order", "created_at")
-            response = render(request, "profiles/partials/links_list.html", {"links": links})
+            response = render(request, "profiles/partials/links_list.html", {"links": links, "profile": profile})
             response.write('<div class="text-red-400 text-xs mt-2" id="link-add-msg" hx-swap-oob="true">Fill all fields.</div>')
             return response
             
@@ -170,21 +193,27 @@ def add_link_view(request):
             link.full_clean()
             link.save()
             
+            if not is_htmx:
+                return JsonResponse({"success": True})
+            
             active_count = profile.links.filter(is_active=True).count()
+            limit = 50 if profile.is_premium else 10
             warning_msg = ""
-            if active_count == 9:
-                warning_msg = '<div class="text-amber-500 text-xs mt-2" id="link-add-msg" hx-swap-oob="true">Soft cap warning: you have 9 active links. Limit is 10.</div>'
+            if active_count == limit - 1:
+                warning_msg = f'<div class="text-amber-500 text-xs mt-2" id="link-add-msg" hx-swap-oob="true">Soft cap warning: you have {active_count} active links. Limit is {limit}.</div>'
             else:
                 warning_msg = '<div id="link-add-msg" hx-swap-oob="true"></div>'
                 
             links = profile.links.all().order_by("sort_order", "created_at")
-            response = render(request, "profiles/partials/links_list.html", {"links": links})
+            response = render(request, "profiles/partials/links_list.html", {"links": links, "profile": profile})
             response.write(warning_msg)
             return response
         except ValidationError as e:
             msg = e.messages[0] if isinstance(e.messages, list) else str(e)
+            if not is_htmx:
+                return JsonResponse({"success": False, "error": msg}, status=400)
             links = profile.links.all().order_by("sort_order", "created_at")
-            response = render(request, "profiles/partials/links_list.html", {"links": links})
+            response = render(request, "profiles/partials/links_list.html", {"links": links, "profile": profile})
             response.write(f'<div class="text-red-400 text-xs mt-2" id="link-add-msg" hx-swap-oob="true">{msg}</div>')
             return response
             
@@ -200,11 +229,12 @@ def toggle_link_view(request, pk):
         # Enforce count caps when toggling link active
         if is_active:
             active_count = profile.links.filter(is_active=True).exclude(pk=link.pk).count()
-            if active_count >= 10:
-                links = profile.links.all().order_by("sort_order", "created_at")
-                response = render(request, "profiles/partials/links_list.html", {"links": links})
-                response.write('<div class="text-red-400 text-xs mt-2" id="link-add-msg" hx-swap-oob="true">Cannot activate. Limit is 10 active links.</div>')
-                return response
+            limit = 50 if profile.is_premium else 10
+            if active_count >= limit:
+                if profile.is_premium:
+                    return HttpResponse("You can have a maximum of 50 active links.", status=400)
+                else:
+                    return HttpResponse("You can have a maximum of 10 active links.", status=400)
                 
         link.is_active = is_active
         link.save()
@@ -214,10 +244,7 @@ def toggle_link_view(request, pk):
             profile.is_visible = False
             profile.save()
             
-        links = profile.links.all().order_by("sort_order", "created_at")
-        response = render(request, "profiles/partials/links_list.html", {"links": links})
-        response["HX-Trigger"] = "profileUpdated"
-        return response
+        return HttpResponse("")
         
     return HttpResponseForbidden()
 
@@ -225,7 +252,7 @@ def toggle_link_view(request, pk):
 def delete_link_view(request, pk):
     profile = get_object_or_404(Profile, user=request.user)
     link = get_object_or_404(Link, pk=pk, profile=profile)
-    if request.method == "POST":
+    if request.method in ["POST", "DELETE"]:
         link.delete()
         
         # Re-check visibility
@@ -233,11 +260,40 @@ def delete_link_view(request, pk):
             profile.is_visible = False
             profile.save()
             
-        links = profile.links.all().order_by("sort_order", "created_at")
-        response = render(request, "profiles/partials/links_list.html", {"links": links})
-        # Trigger header to sync profile visibility form state
-        response["HX-Trigger"] = "profileUpdated"
-        return response
+        is_htmx = request.headers.get("HX-Request") == "true" or request.META.get("HTTP_HX_REQUEST") == "true"
+        if is_htmx:
+            links_count = profile.links.count()
+            limit = 50 if profile.is_premium else 10
+            badge_html = f"""
+            <div class="flex items-center gap-1 text-[11px] font-bold text-theme-muted" id="link-count-badge" hx-swap-oob="true">
+                <span class="text-brand-400">{links_count}</span>
+                <span>/ {limit}</span>
+            </div>
+            """
+            if links_count == 0:
+                empty_html = """
+                <div id="preview-links-grid" class="w-full max-w-3xl mt-8 flex flex-wrap justify-center gap-4" hx-swap-oob="true">
+                    <div x-show="!newCardOpen" class="w-full flex flex-col items-center justify-center py-16 text-center">
+                        <button @click="newCardOpen = !newCardOpen"
+                            class="w-16 h-16 rounded-2xl bg-[#25D366]/10 flex items-center justify-center mb-4 cursor-pointer hover:bg-[#25D366]/20 hover:scale-105 active:scale-95 transition-all"
+                            title="Add first link">
+                            <svg class="w-8 h-8 text-[#25D366]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                        </button>
+                        <p class="text-sm font-bold text-gray-500">No links yet</p>
+                        <p class="text-xs text-gray-400 mt-1">Click the <strong>+</strong> button to add your first WhatsApp link</p>
+                    </div>
+                </div>
+                """
+                fab_hide_html = '<button id="floating-add-btn" hx-swap-oob="true" class="hidden"></button>'
+                response = HttpResponse(empty_html + badge_html + fab_hide_html)
+            else:
+                response = HttpResponse(badge_html)
+            response["HX-Trigger"] = "linkDeleted"
+            return response
+        else:
+            return redirect("profiles:dashboard")
         
     return HttpResponseForbidden()
 
@@ -250,8 +306,28 @@ def sort_links_view(request):
             for index, lid in enumerate(link_ids):
                 Link.objects.filter(pk=lid, profile=profile).update(sort_order=index)
                 
-        links = profile.links.all().order_by("sort_order", "created_at")
-        return render(request, "profiles/partials/links_list.html", {"links": links})
+        response = HttpResponse("")
+        response["HX-Trigger"] = "linksChanged"
+        return response
+        
+@login_required
+def toggle_visibility_view(request):
+    profile = get_object_or_404(Profile, user=request.user)
+    if request.method == "POST":
+        is_visible = request.POST.get("is_visible") == "true"
+        
+        # Guard: check active links
+        active_count = profile.links.filter(is_active=True).count()
+        if is_visible and active_count == 0:
+            return HttpResponse(
+                '<div class="text-red-400 text-xs mt-2" id="visibility-msg">Add at least 1 active link first.</div>',
+                status=400
+            )
+            
+        profile.is_visible = is_visible
+        profile.save()
+        
+        return HttpResponse('')
         
     return HttpResponseForbidden()
 
@@ -259,7 +335,7 @@ def update_theme_view(request):
     if request.method == "POST":
         theme = request.POST.get("theme", "").strip()
         if theme in ["light", "dark", "whatsapp-green"]:
-            response = HttpResponse()
+            response = HttpResponse("")
             if request.user.is_authenticated:
                 try:
                     profile = request.user.profile
@@ -268,7 +344,6 @@ def update_theme_view(request):
                 except Exception:
                     pass
             response.set_cookie("theme_preference", theme, max_age=365*24*60*60)
-            response["HX-Refresh"] = "true"
             return response
     return HttpResponse(status=400)
 
@@ -576,7 +651,7 @@ def link_insights_view(request):
 def links_list_view(request):
     profile = get_object_or_404(Profile, user=request.user)
     links = profile.links.all().order_by("sort_order", "created_at")
-    return render(request, "profiles/partials/links_list.html", {"links": links})
+    return render(request, "profiles/partials/links_list.html", {"links": links, "profile": profile})
 
 @login_required
 def edit_link_view(request, pk):
@@ -587,9 +662,13 @@ def edit_link_view(request, pk):
         label = request.POST.get("label", "").strip()
         url = request.POST.get("url", "").strip()
         surface_type = request.POST.get("surface_type", "").strip()
+        is_htmx = request.headers.get("HX-Request") == "true"
         
         if not label or not url or not surface_type:
+            if not is_htmx:
+                return JsonResponse({"success": False, "error": "All fields are required."}, status=400)
             return render(request, "profiles/partials/edit_link_form.html", {
+                "profile": profile,
                 "link": link,
                 "error": "All fields are required.",
                 "submitted_label": label,
@@ -604,12 +683,17 @@ def edit_link_view(request, pk):
         try:
             link.full_clean()
             link.save()
+            if not is_htmx:
+                return JsonResponse({"success": True})
             response = HttpResponse("")
             response["HX-Trigger"] = "closeEditModal,linkListChanged"
             return response
         except ValidationError as e:
             msg = e.messages[0] if isinstance(e.messages, list) else str(e)
+            if not is_htmx:
+                return JsonResponse({"success": False, "error": msg}, status=400)
             return render(request, "profiles/partials/edit_link_form.html", {
+                "profile": profile,
                 "link": link,
                 "error": msg,
                 "submitted_label": label,
@@ -618,6 +702,7 @@ def edit_link_view(request, pk):
             })
             
     return render(request, "profiles/partials/edit_link_form.html", {
+        "profile": profile,
         "link": link,
         "submitted_label": link.label,
         "submitted_url": link.url,
@@ -640,5 +725,16 @@ def search_handle_view(request):
         except Profile.DoesNotExist:
             return HttpResponse(f'<div class="text-red-400 font-medium mt-1">Handle "@{handle}" not found.</div>')
             
+    return HttpResponseForbidden()
+
+
+@login_required
+@transaction.atomic
+def upgrade_premium_view(request):
+    if request.method == "POST":
+        profile = get_object_or_404(Profile, user=request.user)
+        profile.is_premium = True
+        profile.save()
+        return JsonResponse({"success": True})
     return HttpResponseForbidden()
 

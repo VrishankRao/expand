@@ -138,6 +138,55 @@ class LinkAndLeadModelTest(TestCase):
         with self.assertRaises(ValidationError):
             dup_link.full_clean()
 
+    def test_link_name_and_type_uniqueness_constraint(self):
+        # Create initial link
+        Link.objects.create(
+            profile=self.profile,
+            url="https://wa.me/919999999999",
+            label="hh",
+            surface_type="group"
+        )
+        # Create duplicate link with same name and group type
+        dup_link = Link(
+            profile=self.profile,
+            url="https://wa.me/918888888888",
+            label="hh",
+            surface_type="group"
+        )
+        with self.assertRaises(ValidationError):
+            dup_link.full_clean()
+        
+        # Creating a link with same name but DIFFERENT group type should succeed
+        diff_type_link = Link(
+            profile=self.profile,
+            url="https://wa.me/918888888888",
+            label="hh",
+            surface_type="community"
+        )
+        diff_type_link.full_clean()  # should not raise ValidationError
+        
+        # Creating a link with different name but SAME group type should succeed
+        diff_name_link = Link(
+            profile=self.profile,
+            url="https://wa.me/917777777777",
+            label="other-name",
+            surface_type="group"
+        )
+        diff_name_link.full_clean()  # should not raise ValidationError
+
+    def test_whatsapp_link_cannot_be_other_premium(self):
+        self.profile.is_premium = True
+        self.profile.save()
+        
+        link = Link(
+            profile=self.profile,
+            url="https://wa.me/919999999999",
+            label="Chat Link",
+            surface_type="other"
+        )
+        with self.assertRaises(ValidationError):
+            link.full_clean()
+
     def test_lead_snapshot_on_save(self):
         link = Link.objects.create(
             profile=self.profile,
@@ -185,6 +234,42 @@ class ViewsIntegrationTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Test Profile")
         self.assertContains(response, "Chat")
+
+    def test_public_profile_view_renders_deep_link(self):
+        self.link.surface_type = "group"
+        self.link.label = "Support Chat"
+        self.link.save()
+        
+        # Test valid deep link
+        url = reverse("leads:public_profile_with_link", kwargs={
+            "handle": "testprofile",
+            "surface_type": "group",
+            "slug": "support-chat"
+        })
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["pre_open_link_id"], self.link.id)
+        self.assertContains(response, f"/capture/{self.link.id}/")
+        self.assertContains(response, "htmx.ajax")
+        
+        # Test invalid deep link slug (should redirect to main public profile page)
+        url_invalid = reverse("leads:public_profile_with_link", kwargs={
+            "handle": "testprofile",
+            "surface_type": "group",
+            "slug": "invalid-slug"
+        })
+        response_invalid = self.client.get(url_invalid)
+        self.assertEqual(response_invalid.status_code, 302)
+        self.assertEqual(response_invalid["Location"], "/testprofile/")
+
+        # Test incomplete deep link (should redirect to main public profile page)
+        url_incomplete = reverse("leads:public_profile_incomplete_link", kwargs={
+            "handle": "testprofile",
+            "surface_type": "group"
+        })
+        response_incomplete = self.client.get(url_incomplete)
+        self.assertEqual(response_incomplete.status_code, 302)
+        self.assertEqual(response_incomplete["Location"], "/testprofile/")
 
     def test_public_profile_anonymous_renders_modal_buttons(self):
         url = reverse("leads:public_profile", kwargs={"handle": "testprofile"})
@@ -391,7 +476,7 @@ class ViewsIntegrationTest(TestCase):
             "url": "https://wa.me/919999999998",
             "surface_type": "group"
         }
-        response = self.client.post(url, payload)
+        response = self.client.post(url, payload, HTTP_HX_REQUEST="true")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Support Link")
         self.assertContains(response, "https://wa.me/919999999998")
@@ -404,7 +489,7 @@ class ViewsIntegrationTest(TestCase):
             "url": "not-a-url",
             "surface_type": "other"
         }
-        response = self.client.post(url, payload)
+        response = self.client.post(url, payload, HTTP_HX_REQUEST="true")
         self.assertEqual(response.status_code, 200)
         # Should display validation message
         self.assertContains(response, "id=\"link-add-msg\"", status_code=200)
@@ -423,9 +508,28 @@ class ViewsIntegrationTest(TestCase):
             "url": "https://wa.me/919999999998",
             "surface_type": "group"
         }
-        response = self.client.post(url, payload)
+        response = self.client.post(url, payload, HTTP_HX_REQUEST="true")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "This link is already put up by the user.")
+
+    def test_add_duplicate_name_and_type_link_view_error(self):
+        self.client.force_login(self.user)
+        # Create initial link
+        Link.objects.create(
+            profile=self.profile,
+            url="https://wa.me/919999999998",
+            label="hh",
+            surface_type="group"
+        )
+        url = reverse("profiles:add_link")
+        payload = {
+            "label": "hh",
+            "url": "https://wa.me/918888888888",
+            "surface_type": "group"
+        }
+        response = self.client.post(url, payload, HTTP_HX_REQUEST="true")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "A link with this name and group type already exists on your profile.")
 
     def test_toggle_link_view_limit_exceeded(self):
         self.profile.is_visible = False
@@ -446,8 +550,8 @@ class ViewsIntegrationTest(TestCase):
         self.client.force_login(self.user)
         url = reverse("profiles:toggle_link", kwargs={"pk": inactive_link.pk})
         response = self.client.post(url, {"is_active": "true"})
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Cannot activate. Limit is 10 active links.")
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, "You can have a maximum of 10 active links.", status_code=400)
 
     def test_soft_cap_warning_on_9th_link(self):
         self.client.force_login(self.user)
@@ -465,7 +569,7 @@ class ViewsIntegrationTest(TestCase):
             "url": "https://wa.me/919999999998",
             "surface_type": "group"
         }
-        response = self.client.post(url, payload)
+        response = self.client.post(url, payload, HTTP_HX_REQUEST="true")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Soft cap warning: you have 9 active links. Limit is 10.")
 
@@ -551,7 +655,7 @@ class ViewsIntegrationTest(TestCase):
             "url": "https://wa.me/918888888888",
             "surface_type": "group"
         }
-        response = self.client.post(url, payload)
+        response = self.client.post(url, payload, HTTP_HX_REQUEST="true")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content, b"")
         self.assertIn("closeEditModal", response["HX-Trigger"])
@@ -562,6 +666,21 @@ class ViewsIntegrationTest(TestCase):
         self.assertEqual(self.link.url, "https://wa.me/918888888888")
         self.assertEqual(self.link.surface_type, "group")
 
+    def test_edit_link_view_post_success_json(self):
+        self.client.force_login(self.user)
+        url = reverse("profiles:edit_link", kwargs={"pk": self.link.pk})
+        payload = {
+            "label": "Updated Label JSON",
+            "url": "https://wa.me/918888888888",
+            "surface_type": "group"
+        }
+        response = self.client.post(url, payload)  # No HTMX request
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"success": True})
+        
+        self.link.refresh_from_db()
+        self.assertEqual(self.link.label, "Updated Label JSON")
+
     def test_edit_link_view_post_validation_error(self):
         self.client.force_login(self.user)
         url = reverse("profiles:edit_link", kwargs={"pk": self.link.pk})
@@ -570,12 +689,28 @@ class ViewsIntegrationTest(TestCase):
             "url": "https://example.com/invalid",
             "surface_type": "group"
         }
-        response = self.client.post(url, payload)
+        response = self.client.post(url, payload, HTTP_HX_REQUEST="true")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Only WhatsApp links are allowed on XPAND.")
         
         self.link.refresh_from_db()
         self.assertNotEqual(self.link.label, "Updated Label")
+
+    def test_edit_link_view_post_validation_error_json(self):
+        self.client.force_login(self.user)
+        url = reverse("profiles:edit_link", kwargs={"pk": self.link.pk})
+        payload = {
+            "label": "Updated Label JSON",
+            "url": "https://example.com/invalid",
+            "surface_type": "group"
+        }
+        response = self.client.post(url, payload)  # No HTMX request
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["success"], False)
+        self.assertIn("Only WhatsApp links are allowed on XPAND.", response.json()["error"])
+        
+        self.link.refresh_from_db()
+        self.assertNotEqual(self.link.label, "Updated Label JSON")
 
     def test_edit_link_view_forbidden(self):
         other_user = User.objects.create_user(phone_number="+918888888888")
@@ -650,9 +785,9 @@ class ViewsIntegrationTest(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         
-        # Verify prefilled name, but empty email
+        # Verify prefilled name; email is also prefilled from verified_email even without email_verified=True
         self.assertContains(response, 'value="Visitor Name"')
-        self.assertNotContains(response, 'value="visitor@test.com"')
+        self.assertContains(response, 'value="visitor@test.com"')
 
     def test_capture_lead_authenticated_saves_with_session_phone(self):
         visitor = User.objects.create_user(phone_number="+918888888888")
@@ -681,7 +816,8 @@ class ViewsIntegrationTest(TestCase):
         lead = Lead.objects.get(name="Visitor Name", link=self.link)
         self.assertEqual(lead.whatsapp_number, "+918888888888")
 
-    def test_public_profile_already_submitted_renders_direct_link(self):
+    def test_public_profile_already_submitted_renders_capture_button(self):
+        """Repeat visitors always see the lead capture button so they can submit again if needed."""
         visitor = User.objects.create_user(phone_number="+918888888888")
         visitor_profile = Profile.objects.create(
             user=visitor,
@@ -703,11 +839,11 @@ class ViewsIntegrationTest(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         
-        # Verify that it renders direct link to WhatsApp instead of capture form trigger button
-        self.assertNotContains(response, 'hx-target="#capture-form-container"')
-        self.assertContains(response, f'href="{self.link.url}"')
+        # Verify that repeat visitors still see the lead capture button (not bypassed)
+        self.assertContains(response, 'hx-target="#capture-form-container"')
 
-    def test_capture_lead_already_submitted_directly_returns_redirect(self):
+    def test_capture_lead_already_submitted_shows_form_again(self):
+        """Repeat visitors are always shown the lead form again so they can submit."""
         visitor = User.objects.create_user(phone_number="+918888888888")
         visitor_profile = Profile.objects.create(
             user=visitor,
@@ -729,10 +865,10 @@ class ViewsIntegrationTest(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         
-        # Verify it bypasses lead form and returns the success/redirect template directly
-        self.assertContains(response, "You're all set!")
-        self.assertContains(response, "Opening WhatsApp now")
-        self.assertNotContains(response, '<input type="text" name="name"')
+        # Verify the lead form is shown (not bypassed) with prefilled fields
+        self.assertContains(response, 'value="Visitor Name"')
+        self.assertContains(response, 'value="visitor@test.com"')
+        self.assertNotContains(response, "You're all set!")
 
     def test_link_analytics_view_link_specific_uniqueness(self):
         # Create a second link under the same profile
@@ -1337,6 +1473,207 @@ class LeadReplyTest(TestCase):
         self.assertTrue(self.lead.is_read)
         # Verify it renders lead_row template with open envelope/unread trigger
         self.assertContains(response, "Mark as unread")
+
+
+class PremiumFeaturesTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(phone_number="+918888888888")
+        self.profile = Profile.objects.create(user=self.user, handle="premium_user", display_name="Premium User", is_visible=True)
+
+    def test_upgrade_premium_view_success(self):
+        self.client.force_login(self.user)
+        url = reverse("profiles:upgrade_premium")
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+        self.profile.refresh_from_db()
+        self.assertTrue(self.profile.is_premium)
+
+    def test_upgrade_premium_view_unauthenticated(self):
+        url = reverse("profiles:upgrade_premium")
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 302)
+
+    def test_premium_non_whatsapp_link_allowed(self):
+        self.profile.is_premium = True
+        self.profile.save()
+        
+        # Test adding non-WhatsApp URL as premium user
+        link = Link(profile=self.profile, label="My Site", url="https://example.com", surface_type="other")
+        link.full_clean()
+        link.save()
+        self.assertEqual(link.surface_type, "other")
+
+    def test_free_non_whatsapp_link_denied(self):
+        self.profile.is_premium = False
+        self.profile.save()
+        
+        # Test adding non-WhatsApp URL as free user should raise ValidationError
+        link = Link(profile=self.profile, label="My Site", url="https://example.com", surface_type="other")
+        with self.assertRaises(ValidationError):
+            link.full_clean()
+
+    def test_premium_link_limit_50(self):
+        self.profile.is_premium = True
+        self.profile.save()
+        
+        # Create 50 links (all active)
+        for i in range(50):
+            Link.objects.create(
+                profile=self.profile,
+                label=f"Link {i}",
+                url=f"https://example.com/link{i}",
+                surface_type="other",
+                is_active=True
+            )
+            
+        # Try to add 51st active link
+        extra_link = Link(profile=self.profile, label="Extra Link", url="https://example.com/extra", surface_type="other", is_active=True)
+        with self.assertRaises(ValidationError):
+            extra_link.full_clean()
+
+    def test_free_link_limit_10(self):
+        self.profile.is_premium = False
+        self.profile.save()
+        
+        # Create 10 active whatsapp links
+        for i in range(10):
+            Link.objects.create(
+                profile=self.profile,
+                label=f"Link {i}",
+                url=f"https://wa.me/91999999990{i}",
+                surface_type="group",
+                is_active=True
+            )
+            
+        # Try to add 11th active link
+        extra_link = Link(profile=self.profile, label="Extra Link", url="https://wa.me/919999999990", surface_type="group", is_active=True)
+        with self.assertRaises(ValidationError):
+            extra_link.full_clean()
+
+    def test_premium_lead_bypass_cookie_renders_direct_link(self):
+        self.profile.is_premium = True
+        self.profile.save()
+        
+        link = Link.objects.create(
+            profile=self.profile,
+            url="https://wa.me/919999999999",
+            label="Premium Link",
+            surface_type="group",
+            is_active=True
+        )
+        
+        # Request public profile with the submitted cookie
+        url = reverse("leads:public_profile", kwargs={"handle": self.profile.handle})
+        self.client.cookies["submitted_leads"] = str(link.id)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        # Direct link should be rendered with href, not hx-get target
+        self.assertContains(response, f'href="https://wa.me/919999999999"')
+        self.assertNotContains(response, 'hx-target="#capture-form-container"')
+
+    def test_premium_lead_bypass_capture_view_redirects(self):
+        self.profile.is_premium = True
+        self.profile.save()
+        
+        link = Link.objects.create(
+            profile=self.profile,
+            url="https://wa.me/919999999999",
+            label="Premium Link",
+            surface_type="group",
+            is_active=True
+        )
+        
+        url = reverse("leads:capture_lead", kwargs={"handle": self.profile.handle, "link_id": link.id})
+        self.client.cookies["submitted_leads"] = str(link.id)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        # Should directly redirect via JS script tag
+        self.assertContains(response, 'window.location.href = "https://wa.me/919999999999"')
+
+    def test_premium_lead_bypass_deep_link_redirects_immediately(self):
+        self.profile.is_premium = True
+        self.profile.save()
+        
+        link = Link.objects.create(
+            profile=self.profile,
+            url="https://wa.me/919999999999",
+            label="Premium Link",
+            surface_type="group",
+            is_active=True
+        )
+        
+        url = reverse("leads:public_profile_with_link", kwargs={
+            "handle": self.profile.handle,
+            "surface_type": "group",
+            "slug": "premium-link"
+        })
+        self.client.cookies["submitted_leads"] = str(link.id)
+        response = self.client.get(url)
+        # Should directly do a standard HTTP redirect to the destination URL
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, "https://wa.me/919999999999")
+
+    def test_premium_lead_capture_success_sets_cookie(self):
+        self.profile.is_premium = True
+        self.profile.save()
+        
+        link = Link.objects.create(
+            profile=self.profile,
+            url="https://wa.me/919999999999",
+            label="Premium Link",
+            surface_type="group",
+            is_active=True
+        )
+        
+        # Standard flow to verify bypass cookie is set on successful submission
+        url = reverse("leads:capture_lead", kwargs={"handle": self.profile.handle, "link_id": link.id})
+        payload = {
+            "name": "Test Visitor",
+            "email": "visitor@example.com",
+            "whatsapp_number": "+919999999991",
+            "message": "Hello",
+            "cf-turnstile-response": "test-bypass-token"
+        }
+        
+        # Verify otp verification bypass session
+        session = self.client.session
+        session.save()
+        from django.core.cache import cache
+        cache.set(f"verified_lead_phone_{session.session_key}_+919999999991", True, timeout=600)
+        
+        response = self.client.post(url, payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("submitted_leads", response.cookies)
+        self.assertEqual(response.cookies["submitted_leads"].value, str(link.id))
+
+    def test_non_whatsapp_link_restricted_to_other_surface_type(self):
+        self.profile.is_premium = True
+        self.profile.save()
+
+        # Non-WhatsApp link with 'other' type should be allowed
+        link_ok = Link(
+            profile=self.profile,
+            url="https://google.com",
+            label="Google Link",
+            surface_type="other"
+        )
+        try:
+            link_ok.full_clean()
+        except ValidationError:
+            self.fail("ValidationError raised unexpectedly for non-WhatsApp link with 'other' surface type.")
+
+        # Non-WhatsApp link with any other type should be rejected
+        link_fail = Link(
+            profile=self.profile,
+            url="https://google.com",
+            label="Google Group",
+            surface_type="group"
+        )
+        with self.assertRaises(ValidationError) as context:
+            link_fail.full_clean()
+        self.assertIn("Non-WhatsApp links can only be of type 'Other'.", context.exception.messages)
+
+
 
 
 

@@ -1,6 +1,55 @@
 <h3 class="text-sm font-bold text-theme-text mb-4">Edit WhatsApp CTA</h3>
 
-<form hx-post="{% url 'profiles:edit_link' link.id %}" hx-target="#edit-modal-container" class="space-y-4">
+<form hx-post="{% url 'profiles:edit_link' link.id %}" hx-target="#edit-modal-container" class="space-y-4"
+      x-data="{
+          url: '{{ submitted_url|escapejs }}',
+          type: '{{ submitted_surface_type|escapejs }}',
+          isWhatsApp(val) {
+              if (!val) return true;
+              try {
+                  let clean = val.trim().toLowerCase();
+                  if (!/^https?:\/\//i.test(clean)) { clean = 'https://' + clean; }
+                  let hostname = new URL(clean).hostname;
+                  let domain = hostname.startsWith('www.') ? hostname.substring(4) : hostname;
+                  return domain === 'wa.me' || domain.endsWith('whatsapp.com');
+              } catch(e) {
+                  return false;
+              }
+          },
+          getWhatsAppType(val) {
+              if (!val) return 'group';
+              try {
+                  let clean = val.trim().toLowerCase();
+                  if (!/^https?:\/\//i.test(clean)) { clean = 'https://' + clean; }
+                  let urlObj = new URL(clean);
+                  let hostname = urlObj.hostname;
+                  let domain = hostname.startsWith('www.') ? hostname.substring(4) : hostname;
+                  if (domain !== 'wa.me' && !domain.endsWith('whatsapp.com')) {
+                      return 'other';
+                  }
+                  let path = urlObj.pathname;
+                  if (path.includes('/channel/')) return 'channel';
+                  if (path.includes('/community/')) return 'community';
+                  if (path.includes('/invite/') || path.includes('/group/') || domain === 'chat.whatsapp.com') return 'group';
+                  return 'group';
+              } catch(e) {
+                  return 'group';
+              }
+          }
+      }"
+      x-init="$watch('url', val => {
+          let isWA = isWhatsApp(val);
+          if (!isWA) {
+              type = 'other';
+          } else if (type === 'other' || !type) {
+              type = getWhatsAppType(val) || 'group';
+          } else {
+              let detected = getWhatsAppType(val);
+              if (detected && detected !== 'group') {
+                  type = detected;
+              }
+          }
+      })">
     {% csrf_token %}
 
     {% if error %}
@@ -17,17 +66,20 @@
 
     <div>
         <label for="edit_url" class="block text-[10px] font-bold uppercase tracking-widest text-theme-label mb-1.5">WhatsApp Link</label>
-        <input type="url" name="url" id="edit_url" value="{{ submitted_url }}" required placeholder="wa.me/... or whatsapp.com/..."
+        <input type="url" name="url" id="edit_url" x-model="url" value="{{ submitted_url }}" required placeholder="wa.me/... or whatsapp.com/..."
             class="w-full bg-theme-input border border-theme-input-border rounded-xl px-3.5 py-2.5 text-sm text-theme-input-text placeholder-theme-placeholder">
     </div>
 
     <div>
         <label for="edit_surface_type" class="block text-[10px] font-bold uppercase tracking-widest text-theme-label mb-1.5">Type</label>
-        <select name="surface_type" id="edit_surface_type" required
+        <select name="surface_type" id="edit_surface_type" x-model="type" required
             class="w-full bg-theme-input border border-theme-input-border rounded-xl px-3.5 py-2.5 text-sm text-theme-input-text">
-            <option value="group" {% if submitted_surface_type == 'group' %}selected{% endif %}>Group</option>
-            <option value="community" {% if submitted_surface_type == 'community' %}selected{% endif %}>Community</option>
-            <option value="channel" {% if submitted_surface_type == 'channel' %}selected{% endif %}>Channel</option>
+            <option value="group" {% if submitted_surface_type == 'group' %}selected{% endif %} :disabled="!isWhatsApp(url)">Group</option>
+            <option value="community" {% if submitted_surface_type == 'community' %}selected{% endif %} :disabled="!isWhatsApp(url)">Community</option>
+            <option value="channel" {% if submitted_surface_type == 'channel' %}selected{% endif %} :disabled="!isWhatsApp(url)">Channel</option>
+            {% if profile.is_premium %}
+            <option value="other" {% if submitted_surface_type == 'other' %}selected{% endif %} :disabled="isWhatsApp(url)">Other</option>
+            {% endif %}
         </select>
     </div>
 

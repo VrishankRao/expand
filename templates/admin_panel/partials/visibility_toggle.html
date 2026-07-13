@@ -1,0 +1,12 @@
+<label class="relative inline-flex items-center cursor-pointer" id="visibility-toggle-{{ profile.handle }}">
+    <input type="checkbox" name="is_visible" value="true" class="sr-only peer"
+        {% if profile.is_visible %}checked{% endif %}
+        hx-post="{% url 'admin_panel:toggle_visibility' profile.handle %}"
+        hx-vals='js:{"is_visible": event.target.checked}'
+        hx-target="#visibility-toggle-{{ profile.handle }}"
+        hx-swap="outerHTML">
+    <div class="w-8 h-4 bg-theme-surface border border-theme-border rounded-full
+        peer-checked:bg-brand-500
+        after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all
+        peer-checked:after:translate-x-4"></div>
+</label>

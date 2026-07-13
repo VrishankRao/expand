@@ -5,6 +5,7 @@ app_name = "profiles"
 
 urlpatterns = [
     path("", views.dashboard_view, name="dashboard"),
+    path("preview-grid/", views.preview_links_grid_view, name="preview_grid"),
     path("setup/", views.create_profile_view, name="create_profile"),
     path("update/", views.update_profile_view, name="update_profile"),
     path("email/send-otp/", views.send_email_otp_view, name="send_email_otp"),
@@ -18,6 +19,8 @@ urlpatterns = [
     path("links/analytics/<int:pk>/", views.link_analytics_view, name="link_analytics"),
     path("links/insights/", views.link_insights_view, name="link_insights"),
     path("theme/update/", views.update_theme_view, name="update_theme"),
+    path("visibility/toggle/", views.toggle_visibility_view, name="toggle_visibility"),
     path("search-handle/", views.search_handle_view, name="search_handle"),
+    path("upgrade-premium/", views.upgrade_premium_view, name="upgrade_premium"),
 ]
 

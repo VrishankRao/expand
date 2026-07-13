@@ -15,6 +15,8 @@ urlpatterns = [
     # Public profile and lead capturing
     path("<str:handle>/", views.public_profile_view, name="public_profile"),
     path("<str:handle>/capture/<int:link_id>/", views.capture_lead_view, name="capture_lead"),
+    path("<str:handle>/<str:surface_type>/", views.public_profile_view, name="public_profile_incomplete_link"),
+    path("<str:handle>/<str:surface_type>/<str:slug>/", views.public_profile_view, name="public_profile_with_link"),
     
     # Lead actions
     path("dashboard/leads/<int:pk>/toggle-read/", views.toggle_lead_read_view, name="toggle_lead_read"),

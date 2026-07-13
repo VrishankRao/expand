@@ -1,22 +1,22 @@
-<div class="space-y-3 animate-slide-up">
-    <p class="text-xs text-theme-muted">
-        Check <span class="font-semibold text-theme-text">{{ email }}</span> for your verification code.
+<div class="flex flex-col gap-1.5 animate-slide-up">
+    <p class="text-[10px] text-theme-muted">
+        Check <span class="font-semibold text-theme-text">{{ email }}</span> for code.
     </p>
-    <form hx-post="{% url 'profiles:verify_email_otp' %}" hx-target="#email-verification-section" class="flex max-w-md gap-2.5">
+    <form hx-post="{% url 'profiles:verify_email_otp' %}" hx-target="#email-verification-section" class="flex gap-2">
         {% csrf_token %}
-        <div class="flex-grow relative">
-            <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-muted pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="relative">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-theme-muted pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
             </svg>
             <input type="text" name="otp" required placeholder="6-digit code"
-                class="w-full pl-10 pr-4 py-2.5 bg-theme-input border border-theme-input-border rounded-xl text-sm text-theme-input-text placeholder-theme-placeholder tracking-widest font-mono">
+                class="pl-9 pr-3 py-1.5 bg-theme-input border border-theme-input-border rounded-xl text-xs text-theme-input-text placeholder-theme-placeholder tracking-widest font-mono w-32 focus:outline-none">
         </div>
         <button type="submit"
-            class="inline-flex items-center gap-1.5 px-4 py-2.5 border border-theme-border rounded-xl bg-theme-btn-bg text-theme-text hover:bg-theme-hover text-xs font-semibold whitespace-nowrap">
-            <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            class="inline-flex items-center gap-1 px-3 py-1.5 border border-theme-border rounded-xl bg-theme-btn-bg text-theme-text hover:bg-theme-hover text-xs font-semibold whitespace-nowrap">
+            <svg class="w-3 h-3 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
-            Verify OTP
+            Verify
         </button>
     </form>
 </div>

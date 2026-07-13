@@ -56,21 +56,51 @@ class Link(models.Model):
 
     def clean(self):
         super().clean()
-        # Enforce WhatsApp links only
+        
+        # Resolve surface type dynamically if not set yet or is 'other'
+        if self.url and (not self.surface_type or self.surface_type == "other"):
+            from apps.profiles.utils import detect_whatsapp_link_type
+            detected = detect_whatsapp_link_type(self.url)
+            if detected != "other":
+                if not self.profile.is_premium:
+                    self.surface_type = detected
+
+        # Enforce WhatsApp links only (unless upgraded to premium)
         if self.url:
             from apps.profiles.utils import detect_whatsapp_link_type
-            if detect_whatsapp_link_type(self.url) == "other":
+            is_whatsapp = detect_whatsapp_link_type(self.url) != "other"
+            if not self.profile.is_premium and not is_whatsapp:
                 raise ValidationError("Only WhatsApp links are allowed on XPAND.")
+            
+            if not is_whatsapp and self.surface_type != "other":
+                raise ValidationError("Non-WhatsApp links can only be of type 'Other'.")
+                
+            if is_whatsapp and self.surface_type == "other":
+                raise ValidationError("WhatsApp links cannot be of type 'Other'. Please select a valid WhatsApp category.")
                 
             normalized_url = self.url.strip()
             if Link.objects.filter(profile=self.profile, url=normalized_url).exclude(pk=self.pk).exists():
                 raise ValidationError("This link is already put up by the user.")
         
-        # Enforce free-tier limit: hard cap at 10 active links
+        # Enforce name and type uniqueness
+        if self.label and self.surface_type:
+            normalized_label = self.label.strip()
+            if Link.objects.filter(
+                profile=self.profile,
+                label__iexact=normalized_label,
+                surface_type=self.surface_type
+            ).exclude(pk=self.pk).exists():
+                raise ValidationError("A link with this name and group type already exists on your profile.")
+        
+        # Enforce link limit: 50 active links for premium, 10 for free-tier
         if self.is_active:
             active_count = Link.objects.filter(profile=self.profile, is_active=True).exclude(pk=self.pk).count()
-            if active_count >= 10:
-                raise ValidationError("You have reached the limit of 10 active links on the free tier.")
+            limit = 50 if self.profile.is_premium else 10
+            if active_count >= limit:
+                if self.profile.is_premium:
+                    raise ValidationError("You have reached the limit of 50 active links.")
+                else:
+                    raise ValidationError("You have reached the limit of 10 active links on the free tier.")
 
     def save(self, *args, **kwargs):
         self.clean()
@@ -78,7 +108,7 @@ class Link(models.Model):
         # Automatically detect surface type if not explicitly set or if set to default 'other'
         if not self.surface_type or self.surface_type == "other":
             detected = detect_whatsapp_link_type(self.url)
-            if detected != "other":
+            if detected != "other" and not self.profile.is_premium:
                 self.surface_type = detected
         
         # Populate default CTA if blank
@@ -89,6 +119,25 @@ class Link(models.Model):
 
     def __str__(self):
         return f"{self.label} ({self.get_surface_type_display()})"
+
+    @property
+    def favicon_url(self):
+        from urllib.parse import urlparse
+        import urllib.parse
+        try:
+            parsed = urlparse(self.url)
+            domain = parsed.netloc or parsed.path
+            if ":" in domain:
+                domain = domain.split(":")[0]
+            encoded_domain = urllib.parse.quote(domain)
+            return f"https://www.google.com/s2/favicons?domain={encoded_domain}&sz=64"
+        except Exception:
+            try:
+                encoded_url = urllib.parse.quote(self.url)
+                return f"https://www.google.com/s2/favicons?domain={encoded_url}&sz=64"
+            except Exception:
+                return "https://www.google.com/s2/favicons?domain=example.com&sz=64"
+
 
 
 class LinkClick(models.Model):

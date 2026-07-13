@@ -35,36 +35,6 @@
 <!-- / OG tags -->
 
 <style>
-    {% if current_theme == 'light' %}
-    :root {
-        --bg: #f4f6f9; --surface: #eef0f4; --card: #ffffff;
-        --border: #e2e5ea; --border-subtle: #edf0f3;
-        --text: #0f1117; --muted: #6b7280; --placeholder: rgba(107,114,128,0.55);
-        --label: #4b5563; --input: #f9fafb; --input-border: #d1d5db; --input-text: #0f1117;
-        --hover: #f1f3f6; --btn-bg: #f3f4f6; --btn-border: #d1d5db;
-        --btn-active: #0f1117; --btn-active-text: #ffffff;
-    }
-    {% elif current_theme == 'whatsapp-green' %}
-    :root {
-        --bg: #071a12; --surface: #0a2119; --card: #0d2b20;
-        --border: #134d35; --border-subtle: #0f3d28;
-        --text: #ecfdf5; --muted: #6ee7b7; --placeholder: rgba(110,231,183,0.45);
-        --label: #a7f3d0; --input: #071a12; --input-border: #15573b; --input-text: #ecfdf5;
-        --hover: #0a2a1e; --btn-bg: #0a2119; --btn-border: #15573b;
-        --btn-active: #16a34a; --btn-active-text: #ffffff;
-    }
-    {% else %}
-    :root {
-        --bg: #070d19; --surface: #0c1525; --card: #0f1c30;
-        --border: #1e2d42; --border-subtle: #162030;
-        --text: #f1f5f9; --muted: #64748b; --placeholder: rgba(100,116,139,0.5);
-        --label: #94a3b8; --input: #070d19; --input-border: #1e2d42; --input-text: #f1f5f9;
-        --hover: #132032; --btn-bg: #0c1525; --btn-border: #1e2d42;
-        --btn-active: #1e2d42; --btn-active-text: #f1f5f9;
-    }
-    {% endif %}
-    body { background-color: var(--bg) !important; color: var(--text) !important; }
-
     /* ── XPAND live FX layer ── */
     .fx-aura{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
     .fx-aura i{position:absolute;width:60vmax;height:60vmax;border-radius:50%;filter:blur(110px);opacity:.14;will-change:transform}
@@ -113,10 +83,29 @@
 
 {% block content %}
 <div class="min-h-screen flex flex-col bg-theme-bg text-theme-text"
-     x-data="{ openModal: false }"
+     x-data="{ openModal: false, copiedLinkId: null }"
+     x-init="{% if pre_open_link_id %}openModal = true; htmx.ajax('GET', '{% url 'leads:capture_lead' profile.handle pre_open_link_id %}', {target: '#capture-form-container'});{% endif %}"
      @close-modal.window="openModal = false">
 
     <div class="fx-aura" aria-hidden="true"><i></i><i></i></div>
+
+    <!-- ═══ CLIPBOARD TOAST ═══ -->
+    <div
+        x-show="copiedLinkId !== null"
+        x-cloak
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 translate-y-2 scale-95"
+        x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+        x-transition:leave-end="opacity-0 translate-y-2 scale-95"
+        class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-500 text-white text-xs font-bold shadow-lg shadow-brand-500/30 pointer-events-none"
+        aria-live="polite">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+        </svg>
+        Copied to clipboard!
+    </div>
 
     <div class="fx-curtain" aria-hidden="true"><b></b><b></b><em><span class="fx-dot"></span>XPAND</em></div>
 
@@ -181,27 +170,41 @@
     </div>
 
     <!-- CTA Links -->
-    <div class="max-w-md w-full mx-auto px-4 mt-8 flex-grow space-y-3 pb-16 fx-z">
+    <div class="{% if profile.is_premium %}max-w-5xl{% else %}max-w-3xl{% endif %} w-full mx-auto px-4 mt-8 flex-grow pb-16 fx-z">
+        <div class="flex flex-wrap justify-center gap-3 sm:gap-4">
         {% for l in links %}
             {% if is_owner %}
             <!-- Owner: direct clickable link to WhatsApp, no lead capture or analytics -->
             <a href="{{ l.url }}" target="_blank"
-                class="fx-spot fx-tilt fx-in w-full group p-4 rounded-2xl flex items-center gap-4 border text-left
-                    bg-theme-card border-theme-border hover:border-brand-500/40 hover:shadow-lg hover:shadow-brand-500/10 shadow-sm" style="--d:calc(var(--boot) + .55s + {{ forloop.counter0 }} * 70ms)">
+                class="fx-spot fx-tilt fx-in group p-3 sm:p-5 rounded-2xl flex flex-col items-center text-center gap-2.5 sm:gap-3 border flex-shrink-0 {% if profile.is_premium %}w-[calc(20%-1rem)] min-w-[120px]{% else %}w-[calc(33.333%-1rem)] min-w-[140px]{% endif %} bg-theme-card border-theme-border hover:border-brand-500/40 hover:shadow-lg hover:shadow-brand-500/10 shadow-sm transition-all" style="--d:calc(var(--boot) + .55s + {{ forloop.counter0 }} * 70ms)">
 
-                <div class="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-brand-500/15 transition-colors">
-                    <svg class="w-5 h-5 text-brand-400" fill="currentColor" viewBox="0 0 24 24">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-brand-500/15 transition-colors">
+                    {% if l.surface_type == 'other' %}
+                    <!-- Website Logo -->
+                    <img class="w-5.5 h-5.5 sm:w-6 sm:h-6 object-contain rounded-md" src="{{ l.favicon_url }}" alt="logo">
+                    {% else %}
+                    <svg class="w-5.5 h-5.5 sm:w-6 sm:h-6 text-brand-400" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
                         <path d="M12 0C5.373 0 0 5.373 0 12c0 2.136.558 4.136 1.535 5.875L0 24l6.296-1.507A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.048-1.395l-.362-.215-3.739.895.928-3.638-.236-.374A9.818 9.818 0 1112 21.818z"/>
                     </svg>
+                    {% endif %}
                 </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-[10px] uppercase tracking-widest font-bold text-brand-400 group-hover:text-brand-300">{{ l.get_surface_type_display }}</p>
-                    <p class="text-sm font-semibold text-theme-text mt-0.5">{{ l.label }}</p>
+                <div class="w-full truncate px-1">
+                    <p class="text-[8px] sm:text-[10px] uppercase tracking-wider sm:tracking-widest font-bold text-brand-400 group-hover:text-brand-300 truncate">{{ l.get_surface_type_display }}</p>
+                    <p class="text-xs sm:text-sm font-semibold text-theme-text mt-0.5 sm:mt-1 truncate">{{ l.label }}</p>
                 </div>
-                <svg class="w-4 h-4 text-theme-muted group-hover:text-theme-text group-hover:translate-x-1 transition-all flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                </svg>
+                <!-- Divider -->
+                <div class="w-full border-t border-theme-border mt-1.5 sm:mt-3 pt-1.5 sm:pt-2 flex justify-center items-center">
+                    <button
+                        @click.prevent.stop="navigator.clipboard.writeText(window.location.origin + '{% url 'leads:public_profile_with_link' profile.handle l.surface_type l.label|slugify %}'); copiedLinkId = {{ l.id }}; setTimeout(() => copiedLinkId = null, 2000)"
+                        class="text-[9px] sm:text-[10px] font-semibold text-theme-muted hover:text-brand-500 uppercase tracking-wider flex items-center gap-1 transition-colors"
+                        title="Copy link to clipboard">
+                        <svg class="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                        </svg>
+                        SHARE
+                    </button>
+                </div>
             </a>
 
             {% elif l.id in submitted_link_ids %}
@@ -210,48 +213,74 @@
                 hx-get="{% url 'leads:capture_lead' profile.handle l.id %}"
                 hx-trigger="click"
                 hx-swap="none"
-                class="fx-spot fx-tilt fx-in w-full group p-4 rounded-2xl flex items-center gap-4 border text-left
-                    bg-theme-card border-theme-border hover:border-brand-500/40 hover:shadow-lg hover:shadow-brand-500/10 shadow-sm" style="--d:calc(var(--boot) + .55s + {{ forloop.counter0 }} * 70ms)">
+                class="fx-spot fx-tilt fx-in group p-3 sm:p-5 rounded-2xl flex flex-col items-center text-center gap-2.5 sm:gap-3 border flex-shrink-0 {% if profile.is_premium %}w-[calc(20%-1rem)] min-w-[120px]{% else %}w-[calc(33.333%-1rem)] min-w-[140px]{% endif %} bg-theme-card border-theme-border hover:border-brand-500/40 hover:shadow-lg hover:shadow-brand-500/10 shadow-sm transition-all" style="--d:calc(var(--boot) + .55s + {{ forloop.counter0 }} * 70ms)">
 
-                <div class="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-brand-500/15 transition-colors">
-                    <svg class="w-5 h-5 text-brand-400" fill="currentColor" viewBox="0 0 24 24">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-brand-500/15 transition-colors">
+                    {% if l.surface_type == 'other' %}
+                    <!-- Website Logo -->
+                    <img class="w-5.5 h-5.5 sm:w-6 sm:h-6 object-contain rounded-md" src="{{ l.favicon_url }}" alt="logo">
+                    {% else %}
+                    <svg class="w-5.5 h-5.5 sm:w-6 sm:h-6 text-brand-400" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
                         <path d="M12 0C5.373 0 0 5.373 0 12c0 2.136.558 4.136 1.535 5.875L0 24l6.296-1.507A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.048-1.395l-.362-.215-3.739.895.928-3.638-.236-.374A9.818 9.818 0 1112 21.818z"/>
                     </svg>
+                    {% endif %}
                 </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-[10px] uppercase tracking-widest font-bold text-brand-400 group-hover:text-brand-300">{{ l.get_surface_type_display }}</p>
-                    <p class="text-sm font-semibold text-theme-text mt-0.5">{{ l.label }}</p>
+                <div class="w-full truncate px-1">
+                    <p class="text-[8px] sm:text-[10px] uppercase tracking-wider sm:tracking-widest font-bold text-brand-400 group-hover:text-brand-300 truncate">{{ l.get_surface_type_display }}</p>
+                    <p class="text-xs sm:text-sm font-semibold text-theme-text mt-0.5 sm:mt-1 truncate">{{ l.label }}</p>
                 </div>
-                <svg class="w-4 h-4 text-theme-muted group-hover:text-theme-text group-hover:translate-x-1 transition-all flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                </svg>
+                <!-- Divider -->
+                <div class="w-full border-t border-theme-border mt-1.5 sm:mt-3 pt-1.5 sm:pt-2 flex justify-center items-center">
+                    <button
+                        @click.prevent.stop="navigator.clipboard.writeText(window.location.origin + '{% url 'leads:public_profile_with_link' profile.handle l.surface_type l.label|slugify %}'); copiedLinkId = {{ l.id }}; setTimeout(() => copiedLinkId = null, 2000)"
+                        class="text-[9px] sm:text-[10px] font-semibold text-theme-muted hover:text-brand-500 uppercase tracking-wider flex items-center gap-1 transition-colors"
+                        title="Copy link to clipboard">
+                        <svg class="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                        </svg>
+                        SHARE
+                    </button>
+                </div>
             </a>
 
             {% else %}
-            <!-- Public: clickable lead capture button -->
-            <button
+            <!-- Public: clickable lead capture div (not button to avoid nested button issue) -->
+            <div
                 hx-get="{% url 'leads:capture_lead' profile.handle l.id %}"
                 hx-target="#capture-form-container"
                 hx-swap="innerHTML"
                 @click="openModal = true"
-                class="fx-spot fx-tilt fx-in w-full group p-4 rounded-2xl flex items-center gap-4 border text-left
-                    bg-theme-card border-theme-border hover:border-brand-500/40 hover:shadow-lg hover:shadow-brand-500/10 shadow-sm" style="--d:calc(var(--boot) + .55s + {{ forloop.counter0 }} * 70ms)">
+                class="fx-spot fx-tilt fx-in group p-3 sm:p-5 rounded-2xl flex flex-col items-center text-center gap-2.5 sm:gap-3 border flex-shrink-0 {% if profile.is_premium %}w-[calc(20%-1rem)] min-w-[120px]{% else %}w-[calc(33.333%-1rem)] min-w-[140px]{% endif %} bg-theme-card border-theme-border hover:border-brand-500/40 hover:shadow-lg hover:shadow-brand-500/10 shadow-sm transition-all cursor-pointer" style="--d:calc(var(--boot) + .55s + {{ forloop.counter0 }} * 70ms)">
 
-                <div class="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-brand-500/15 transition-colors">
-                    <svg class="w-5 h-5 text-brand-400" fill="currentColor" viewBox="0 0 24 24">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-brand-500/15 transition-colors">
+                    {% if l.surface_type == 'other' %}
+                    <!-- Website Logo -->
+                    <img class="w-5.5 h-5.5 sm:w-6 sm:h-6 object-contain rounded-md" src="{{ l.favicon_url }}" alt="logo">
+                    {% else %}
+                    <svg class="w-5.5 h-5.5 sm:w-6 sm:h-6 text-brand-400" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
                         <path d="M12 0C5.373 0 0 5.373 0 12c0 2.136.558 4.136 1.535 5.875L0 24l6.296-1.507A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.048-1.395l-.362-.215-3.739.895.928-3.638-.236-.374A9.818 9.818 0 1112 21.818z"/>
                     </svg>
+                    {% endif %}
                 </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-[10px] uppercase tracking-widest font-bold text-brand-400 group-hover:text-brand-300">{{ l.get_surface_type_display }}</p>
-                    <p class="text-sm font-semibold text-theme-text mt-0.5">{{ l.label }}</p>
+                <div class="w-full truncate px-1">
+                    <p class="text-[8px] sm:text-[10px] uppercase tracking-wider sm:tracking-widest font-bold text-brand-400 group-hover:text-brand-300 truncate">{{ l.get_surface_type_display }}</p>
+                    <p class="text-xs sm:text-sm font-semibold text-theme-text mt-0.5 sm:mt-1 truncate">{{ l.label }}</p>
                 </div>
-                <svg class="w-4 h-4 text-theme-muted group-hover:text-theme-text group-hover:translate-x-1 transition-all flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                </svg>
-            </button>
+                <!-- Divider -->
+                <div class="w-full border-t border-theme-border mt-1.5 sm:mt-3 pt-1.5 sm:pt-2 flex justify-center items-center">
+                    <span
+                        @click.stop="navigator.clipboard.writeText(window.location.origin + '{% url 'leads:public_profile_with_link' profile.handle l.surface_type l.label|slugify %}'); copiedLinkId = {{ l.id }}; setTimeout(() => copiedLinkId = null, 2000)"
+                        class="text-[9px] sm:text-[10px] font-semibold text-theme-muted hover:text-brand-500 uppercase tracking-wider flex items-center gap-1 transition-colors cursor-pointer"
+                        title="Copy link to clipboard">
+                        <svg class="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                        </svg>
+                        SHARE
+                    </span>
+                </div>
+            </div>
             {% endif %}
 
         {% empty %}
@@ -259,6 +288,7 @@
             <p class="text-sm font-medium">No links available yet.</p>
         </div>
         {% endfor %}
+        </div>
     </div>
 
     <!-- Footer -->

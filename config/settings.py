@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "apps.profiles.apps.ProfilesConfig",
     "apps.links.apps.LinksConfig",
     "apps.leads.apps.LeadsConfig",
+    "apps.admin_panel.apps.AdminPanelConfig",
 ]
 
 MIDDLEWARE = [
