@@ -1,7 +1,7 @@
 <div id="preview-links-grid" {% if is_oob %}hx-swap-oob="true"{% endif %} class="w-full {% if profile.is_premium %}max-w-5xl{% else %}max-w-3xl{% endif %} mt-8 flex flex-wrap justify-center gap-3 sm:gap-4 relative z-10" hx-get="{% url 'profiles:preview_grid' %}" hx-trigger="linksChanged from:body" hx-swap="outerHTML">
     {% for link in links %}
     <!-- Individual preview card -->
-    <div class="group relative {% if link.is_active %}bg-theme-card border-theme-border text-theme-text{% else %}bg-theme-surface border-theme-border/50 text-theme-muted opacity-60{% endif %} rounded-2xl shadow-sm border overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 flex-shrink-0 w-[calc(33.333%-0.5rem)] {% if profile.is_premium %}sm:w-[calc(20%-0.8rem)]{% else %}sm:w-56{% endif %}"
+    <div class="group relative {% if link.is_active %}bg-theme-card border-theme-border text-theme-text{% else %}bg-theme-surface border-theme-border/50 text-theme-muted opacity-60{% endif %} rounded-2xl shadow-sm border overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 flex-shrink-0 w-[calc(50%-0.5rem)] min-w-[140px] {% if profile.is_premium %}sm:w-[calc(20%-0.8rem)]{% else %}sm:w-56{% endif %}"
          data-id="{{ link.id }}"
          x-data="{
              editing: false,
